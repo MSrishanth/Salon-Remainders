@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Shobana Hair Salon</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&family=Dancing+Script:wght@700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2.0">
+</head>
+
+<body>
+  <!-- LANDING -->
+  <div id="landing-page">
+    <nav class="nav"><a class="nav-brand" href="#">
+        <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <circle cx="6" cy="6" r="3" />
+            <path d="M8.12 8.12 12 12" />
+            <path d="M20 4 8.12 15.88" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M14.8 14.8 20 20" />
+          </svg></div>
+        <div>
+          <div class="nav-title">SHOBANA HAIR SALON</div>
+          <div class="nav-sub">PREMIUM GROOMING</div>
+        </div>
+      </a>
+      <div class="nav-btns"><button class="brut-btn" onclick="showLogin('customer')">📅 Book</button><button
+          class="brut-btn brut-white" onclick="showLogin('customer')">👤 My Visits</button><button
+          class="brut-btn brut-yellow" onclick="showLogin('barber')">🔔 Barber</button></div>
+    </nav>
+
+    <div class="marquee">
+      <div class="marquee-track">
+        <div class="marquee-items"><span>★ BEST BARBER IN TOWN</span><span>✂ HAIRCUT FROM ₹149</span><span>★ OPEN
+            8AM–10PM · TUESDAY CLOSED</span><span>✂ CALL 8686383723</span><span>★ SERVICE REMINDERS</span><span>✂
+            SHOBANA HAIR SALON</span></div>
+        <div class="marquee-items"><span>★ BEST BARBER IN TOWN</span><span>✂ HAIRCUT FROM ₹149</span><span>★ OPEN
+            8AM–10PM · TUESDAY CLOSED</span><span>✂ CALL 8686383723</span><span>★ SERVICE REMINDERS</span><span>✂
+            SHOBANA HAIR SALON</span></div>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-text">
+          <div class="hero-badge">★ ★ ★ BEST BARBER ★ ★ ★</div>
+          <h1 class="hero-title">SHOBANA<br>HAIR<br><span class="hero-highlight">SALON</span></h1>
+          <p class="hero-desc">Sharp cuts. Loyal customers. Now with service reminders so you never miss your next
+            look.</p>
+          <div class="hero-actions"><button class="brut-btn text-lg" onclick="showLogin('customer')">BOOK NOW
+              →</button><a href="tel:8686383723" class="brut-btn brut-white text-lg">📞 86863 83723</a></div>
+        </div>
+        <div class="hero-img-wrap">
+          <div class="brut-card hero-img-card"><img
+              src="https://images.pexels.com/photos/20785318/pexels-photo-20785318.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+              alt="Barber"></div>
+          <div class="hero-hours-tag">OPEN 8AM – 10PM</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="features-inner" id="feat-grid"></div>
+    </section>
+
+    <section class="pricelist-section">
+      <div class="pricelist-wrap">
+        <div class="brut-card pricelist-card">
+          <div class="pricelist-header">
+            <div class="pricelist-title">PRICE<span class="script-text">list</span></div>
+            <div class="pricelist-line"></div>
+          </div>
+          <div class="pricelist-body" id="price-rows"></div>
+        </div>
+        <div class="pricelist-cta"><button class="brut-btn text-lg" onclick="showLogin('customer')">BOOK A SERVICE
+            →</button></div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div class="foot-inner">
+        <div>
+          <div class="foot-brand">SHOBANA HAIR SALON</div>
+          <div class="foot-sub">★ BEST BARBER ★</div>
+        </div>
+        <div>
+          <div class="foot-heading">HOURS</div>
+          <div>🕐 Mon, Wed–Sun: 8AM – 10PM</div>
+          <div style="margin-top:4px;color:#ff6b6b">🚫 Tuesday: CLOSED</div>
+        </div>
+        <div>
+          <div class="foot-heading">CONTACT</div>
+          <div>📞 86863 83723</div>
+          <div>📍 Visit us today</div>
+        </div>
+      </div>
+      <div class="foot-bottom">&copy; 2026 SHOBANA HAIR SALON &middot; BUILT WITH ✂</div>
+    </footer>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="login-screen" style="display:none" class="login-screen">
+    <div class="login-card"><button class="login-back" onclick="backToLanding()">← Back</button>
+      <div class="login-logo">✂️</div>
+      <h1 class="login-h">Shobana Hair Salon</h1>
+      <p class="login-sub">Sign in to continue</p>
+      <div class="login-tabs"><button id="lt-barber" class="ltab active"
+          onclick="setLoginRole('barber')">Barber</button><button id="lt-customer" class="ltab"
+          onclick="setLoginRole('customer')">Customer</button></div>
+      <form onsubmit="handleLogin(event)">
+        <div id="login-name-group" class="fg" style="display:none"><label class="fl">Full Name</label><input class="fi"
+            id="login-name" placeholder="Enter your full name"></div>
+        <div class="fg"><label class="fl">Phone</label><input class="fi" id="login-user" required
+            placeholder="Enter username"></div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input class="fi" id="login-pass" type="password" required placeholder="Enter password">
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:0.85rem; font-weight:600; cursor:pointer;">
+            <input type="checkbox" onclick="document.getElementById('login-pass').type = this.checked ? 'text' : 'password'"> Show Password
+          </label>
+        </div>
+        <div id="login-error" class="login-err"></div><button type="submit" class="brut-btn full">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- BARBER APP -->
+  <div id="barber-app" style="display:none">
+    <div class="topbar">
+      <div class="topbar-brand">✂️ Shobana</div>
+      <div class="topbar-nav"><button class="active" onclick="bTab('dashboard',this)">Dashboard</button><button
+          onclick="bTab('bookings',this)">Bookings</button><button
+          onclick="bTab('customers',this)">Customers</button><button
+          onclick="bTab('reminders',this)">Reminders</button><button onclick="bTab('services',this)">Services</button>
+      </div>
+      <div class="topbar-acts"><button class="ab ao" title="Sync Data" onclick="openModal('booking-modal')">+
+          New</button><button class="btn-logout" onclick="openRemModal()">🔔 Set Service
+          Reminder</button><button class="btn-logout" onclick="logout()">Logout</button></div>
+    </div>
+    <div class="main">
+      <div id="bv-dashboard" class="bv">
+        <div class="ph">
+          <h1>Dashboard</h1>
+          <p>Daily Overview</p>
+        </div>
+        <div class="sg">
+          <div class="sb">
+            <div class="si blue">📅</div>
+            <div class="sv" id="s-today">--</div>
+            <div class="sl">Bookings</div>
+          </div>
+          <div class="sb">
+            <div class="si purple">📨</div>
+            <div class="sv" id="s-rem">--</div>
+            <div class="sl">Reminders</div>
+          </div>
+          <div class="sb">
+            <div class="si gold">₹</div>
+            <div class="sv" id="s-rev">--</div>
+            <div class="sl">Today's Revenue</div>
+          </div>
+          <div class="sb">
+            <div class="si green">👥</div>
+            <div class="sv" id="s-cust-total">--</div>
+            <div class="sl">Total Customers</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch">
+            <h2>Upcoming Bookings</h2>
+          </div>
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Service</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dash-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="bv-bookings" class="bv" style="display:none">
+        <div class="ph split">
+          <div>
+            <h1>All Bookings</h1>
+            <p>Manage appointments</p>
+          </div>
+          <div class="sbar"><input class="sinp" placeholder="Search..." oninput="rBook(this.value)"><select class="ssel"
+              id="bf" onchange="rBook()">
+              <option value="all">All</option>
+              <option value="PENDING">Pending</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select></div>
+        </div>
+        <div class="card">
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Customer</th>
+                  <th>Service</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="book-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="bv-customers" class="bv" style="display:none">
+        <div class="ph split">
+          <div>
+            <h1>Customer Directory</h1>
+            <p>Manage your regulars</p>
+          </div>
+          <div class="sbar"><input class="sinp" placeholder="Search..." oninput="rCust(this.value)"><button
+              class="brut-btn" onclick="openModal('add-cust-modal')">+ Add Customer</button></div>
+        </div>
+        <div class="card">
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Visits</th>
+                  <th>Spent</th>
+                  <th>Last Visit</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="cust-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="bv-reminders" class="bv" style="display:none">
+        <div class="ph">
+          <h1>Service Reminders</h1>
+          <p>Manual reminders</p>
+        </div>
+        <div class="card">
+          <div class="ch">
+            <h2>Reminder Log</h2>
+          </div>
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Set On</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Customer</th>
+                  <th>Phone</th>
+                  <th>Service</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="rem-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="bv-services" class="bv" style="display:none">
+        <div class="ph">
+          <h1>Services & Pricing</h1>
+          <p>8AM–10PM · Ph: 8686383723</p>
+        </div>
+        <div class="card">
+          <div class="pgrid" id="svc-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER APP -->
+  <div id="customer-app" style="display:none">
+    <div class="topbar">
+      <div class="topbar-brand">✂️ Shobana</div>
+      <div class="topbar-nav"><button class="active" onclick="cTab('home',this)">Home</button><button
+          onclick="cTab('mybookings',this)">My Bookings</button><button onclick="cTab('myreminders',this)">My
+          Reminders</button><button onclick="cTab('svclist',this)">Services</button></div>
+      <div class="topbar-acts"><span id="cust-name" class="cname"></span><button class="btn-logout"
+          onclick="openRemModal()">🔔 Set Service Reminder</button><button class="btn-logout"
+          onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="main">
+      <div id="cv-home" class="cv">
+        <div class="chero">
+          <h1>Welcome, <span id="cust-greet"></span>!</h1>
+          <p>Book your next appointment</p><button class="brut-btn" onclick="openModal('cust-book-modal')">📅 Book
+            Now</button>
+        </div>
+        <div class="sg two">
+          <div class="sb">
+            <div class="si blue">📅</div>
+            <div class="sv" id="c-upcoming">--</div>
+            <div class="sl">Upcoming</div>
+          </div>
+          <div class="sb">
+            <div class="si green">✅</div>
+            <div class="sv" id="c-completed">--</div>
+            <div class="sl">Completed</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch">
+            <h2>Next Appointment</h2>
+          </div>
+          <div class="cb" id="c-next"></div>
+        </div>
+      </div>
+      <div id="cv-mybookings" class="cv" style="display:none">
+        <div class="ph">
+          <h1>My Bookings</h1>
+          <p>Full history of your visits</p>
+        </div>
+        <div class="card">
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Service</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="mybook-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="cv-myreminders" class="cv" style="display:none">
+        <div class="ph">
+          <h1>My Service Reminders</h1>
+          <p>Scheduled alerts for your services</p>
+        </div>
+        <div class="card">
+          <div class="cb">
+            <table>
+              <thead>
+                <tr>
+                  <th>Set On</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Service</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="myrem-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="cv-svclist" class="cv" style="display:none">
+        <div class="ph">
+          <h1>Our Services</h1>
+        </div>
+        <div class="card">
+          <div class="pgrid" id="csvc-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="mo" id="booking-modal">
+    <div class="modal">
+      <div class="mh">
+        <h2>New Booking</h2><button class="mc" onclick="closeModal('booking-modal')">&times;</button>
+      </div>
+      <form id="booking-form" onsubmit="submitBooking(event)">
+        <div class="mb">
+          <div class="fg"><label class="fl">Customer Name</label><input class="fi" id="f-name" required
+              placeholder="Name"></div>
+          <div class="fg"><label class="fl">Contact Number</label><input class="fi" id="f-phone" required
+              placeholder="9876543210"></div>
+          <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" id="f-email" required
+              placeholder="customer@example.com"></div>
+          <div class="fg"><label class="fl">Service</label><select class="fi" id="f-svc" required>
+              <option value="">Select...</option>
+            </select></div>
+          <div class="fr">
+            <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="f-date" required></div>
+            <div class="fg"><label class="fl">Time</label><input type="time" class="fi" id="f-time" required></div>
+          </div>
+        </div>
+        <div class="mf"><button type="button" class="btn-cancel"
+            onclick="closeModal('booking-modal')">Cancel</button><button type="submit" class="brut-btn">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="mo" id="cust-book-modal">
+    <div class="modal">
+      <div class="mh">
+        <h2>Book Appointment</h2><button class="mc" onclick="closeModal('cust-book-modal')">&times;</button>
+      </div>
+      <form onsubmit="custSubmitBooking(event)">
+        <div class="mb">
+          <div class="fg"><label class="fl">Full Name</label><input class="fi" id="cf-name" required
+              placeholder="Your Name"></div>
+          <div class="fg"><label class="fl">Service</label><select class="fi" id="cf-svc" required>
+              <option value="">Select...</option>
+            </select></div>
+          <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" id="cf-email" required
+              placeholder="your@email.com"></div>
+          <div class="fr">
+            <div class="fg"><label class="fl">Date</label><input type="date" class="fi" id="cf-date" required></div>
+            <div class="fg"><label class="fl">Time</label><select class="fi" id="cf-time" required>
+                <option value="">Select time...</option>
+                <option value="08:00">8:00 AM</option>
+                <option value="08:30">8:30 AM</option>
+                <option value="09:00">9:00 AM</option>
+                <option value="09:30">9:30 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">1:00 PM</option>
+                <option value="13:30">1:30 PM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="14:30">2:30 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="15:30">3:30 PM</option>
+                <option value="16:00">4:00 PM</option>
+                <option value="16:30">4:30 PM</option>
+                <option value="17:00">5:00 PM</option>
+                <option value="17:30">5:30 PM</option>
+                <option value="18:00">6:00 PM</option>
+                <option value="18:30">6:30 PM</option>
+                <option value="19:00">7:00 PM</option>
+                <option value="19:30">7:30 PM</option>
+                <option value="20:00">8:00 PM</option>
+                <option value="20:30">8:30 PM</option>
+                <option value="21:00">9:00 PM</option>
+                <option value="21:30">9:30 PM</option>
+              </select></div>
+          </div>
+        </div>
+        <div class="mf"><button type="button" class="btn-cancel"
+            onclick="closeModal('cust-book-modal')">Cancel</button><button type="submit"
+            class="brut-btn">Confirm</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="mo" id="add-cust-modal">
+    <div class="modal">
+      <div class="mh">
+        <h2>👥 Add New Customer</h2><button class="mc" onclick="closeModal('add-cust-modal')">&times;</button>
+      </div>
+      <form onsubmit="submitAddCust(event)">
+        <div class="mb">
+          <div class="fg"><label class="fl">Customer Name</label><input class="fi" id="ac-name" required
+              placeholder="Name"></div>
+          <div class="fg"><label class="fl">Phone Number</label><input class="fi" id="ac-phone" required
+              placeholder="9876543210"></div>
+          <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" id="ac-email" required
+              placeholder="email@example.com"></div>
+        </div>
+        <div class="mf"><button type="button" class="btn-cancel"
+            onclick="closeModal('add-cust-modal')">Cancel</button><button type="submit" class="brut-btn">Add
+            Customer</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="mo" id="rem-modal">
+    <div class="modal">
+      <div class="mh">
+        <h2>🔔 Service Reminder</h2><button class="mc" onclick="closeModal('rem-modal')">&times;</button>
+      </div>
+      <form onsubmit="submitManualReminder(event)">
+        <div class="mb">
+          <div id="h-barber-fields" style="display:none">
+            <div class="fg"><label class="fl">Customer Name</label><input class="fi" id="h-name" placeholder="Name">
+            </div>
+            <div class="fg"><label class="fl">Contact Number</label><input class="fi" id="h-phone"
+                placeholder="9876543210"></div>
+            <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" id="h-email"
+                placeholder="customer@example.com"></div>
+          </div>
+          <div id="h-customer-fields" style="display:none">
+            <div class="fg"><label class="fl">Email Address</label><input class="fi" type="email" id="hc-email"
+                placeholder="your@email.com"></div>
+          </div>
+          <div class="fg"><label class="fl">Select Service</label><select class="fi" id="h-svc" required>
+              <option value="">Select...</option>
+            </select></div>
+          <div class="fr">
+            <div class="fg"><label class="fl">Reminder Date</label><input type="date" class="fi" id="h-date" required>
+            </div>
+            <div class="fg"><label class="fl">Time</label><select class="fi" id="h-time" required>
+                <option value="">Select time...</option>
+                <option value="08:00">8:00 AM</option>
+                <option value="08:30">8:30 AM</option>
+                <option value="09:00">9:00 AM</option>
+                <option value="09:30">9:30 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">1:00 PM</option>
+                <option value="13:30">1:30 PM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="14:30">2:30 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="15:30">3:30 PM</option>
+                <option value="16:00">4:00 PM</option>
+                <option value="16:30">4:30 PM</option>
+                <option value="17:00">5:00 PM</option>
+                <option value="17:30">5:30 PM</option>
+                <option value="18:00">6:00 PM</option>
+                <option value="18:30">6:30 PM</option>
+                <option value="19:00">7:00 PM</option>
+                <option value="19:30">7:30 PM</option>
+                <option value="20:00">8:00 PM</option>
+                <option value="20:30">8:30 PM</option>
+                <option value="21:00">9:00 PM</option>
+                <option value="21:30">9:30 PM</option>
+              </select></div>
+          </div>
+        </div>
+        <div class="mf"><button type="button" class="btn-cancel" onclick="closeModal('rem-modal')">Close</button><button
+            type="submit" class="brut-btn">Schedule Alert</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FIREBASE COMPAT SDK (More stable for all browsers) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyACeA1VPy5xeHyan_GQdc4HBwX9kFWonAE",
+      authDomain: "shobana-hair-saloon.firebaseapp.com",
+      projectId: "shobana-hair-saloon",
+      storageBucket: "shobana-hair-saloon.firebasestorage.app",
+      messagingSenderId: "395127807032",
+      appId: "1:395127807032:web:4a0997b489f562b4a41acd",
+      measurementId: "G-HK19F7EQXK"
+    };
+
+    // Initialize Firebase Compat
+    firebase.initializeApp(firebaseConfig);
+    window.db = firebase.firestore();
+    console.log("Firebase Cloud Connected (Compat Mode)");
+  </script>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js?v=4.0"></script>
+</body>
+
+</html>

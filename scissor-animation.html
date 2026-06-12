@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shobana Hair Salon</title>
+<!-- 
+  INTEGRATION NOTES:
+  1. Copy the CSS variables and relevant styles from the <style> block into your stylesheet.
+  2. The CSS for the animation (panels, canvas, scissors, etc.) is fully self-contained.
+  3. Copy the <script> block and place it just before the closing </body> tag.
+  4. Wrap your existing hero section in a container with id="hero-section" and set its initial opacity to 0, like so:
+     <div id="hero-section" style="opacity: 0;"> ... your hero content ... </div>
+  5. The JavaScript will dynamically inject all required animation elements (panels, scissors, canvas, cut-line) 
+     so it won't break your existing HTML structure.
+  6. All animation elements automatically self-remove from the DOM after the animation completes (~2500ms).
+-->
+<style>
+  :root {
+    --brand-yellow: #FFD700;
+    --brand-black: #1a1a1a;
+  }
+
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--brand-black);
+    font-family: 'Inter', 'Roboto', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* --- Hero Section Styles --- */
+  #hero-section {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background-color: var(--brand-yellow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 1;
+    /* Opacity starts at 0, transitions to 1 */
+    opacity: 0; 
+    transition: opacity 600ms ease;
+  }
+
+  #hero-section.visible {
+    opacity: 1;
+  }
+
+  .badge {
+    font-weight: bold;
+    letter-spacing: 2px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: var(--brand-black);
+  }
+
+  h1 {
+    font-size: 4rem;
+    margin: 0;
+    color: var(--brand-black);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  h1 .highlight {
+    background-color: var(--brand-black);
+    color: var(--brand-yellow);
+    padding: 0 10px;
+    display: inline-block;
+  }
+
+  .tagline {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    color: var(--brand-black);
+    font-weight: 500;
+  }
+
+  .book-now {
+    margin-top: 2rem;
+    background-color: var(--brand-black);
+    color: var(--brand-yellow);
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .book-now:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+  }
+
+  /* --- Animation Elements Styles --- */
+  .anim-panel {
+    position: fixed;
+    left: 0;
+    width: 100vw;
+    height: 50vh;
+    background: #111111;
+    z-index: 100;
+    transition: transform 1100ms cubic-bezier(0.76, 0, 0.24, 1);
+  }
+  
+  .anim-panel.top {
+    top: 0;
+    transform: translateY(0);
+  }
+  
+  .anim-panel.bottom {
+    top: 50vh;
+    transform: translateY(0);
+  }
+
+  .anim-panel.top.open {
+    transform: translateY(-105%);
+  }
+
+  .anim-panel.bottom.open {
+    transform: translateY(105%);
+  }
+
+  .anim-cut-line {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--brand-yellow);
+    opacity: 0;
+    z-index: 150;
+    transition: opacity 200ms;
+  }
+
+  .anim-cut-line.visible {
+    opacity: 0.6;
+  }
+
+  .anim-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+    opacity: 0;
+    z-index: 250;
+    pointer-events: none;
+    transition: opacity 200ms;
+  }
+  
+  .anim-flash.visible {
+    opacity: 0.8;
+  }
+
+  #anim-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 101; /* Above panels, below flash */
+    pointer-events: none;
+  }
+
+  .anim-scissors-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 140px;
+    height: 60px;
+    margin-left: -70px;
+    margin-top: -30px;
+    z-index: 200;
+    transform: translateX(-55vw) rotate(-12deg) scale(1.1);
+    animation: snip-move 1400ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  @keyframes snip-move {
+    0%   { transform: translateX(-55vw) rotate(-12deg) scale(1.1); opacity: 1; }
+    55%  { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
+    75%  { transform: translateX(0) rotate(0deg) scale(1); opacity: 1; }
+    100% { transform: translateX(55vw) rotate(8deg) scale(0.9); opacity: 0; }
+  }
+
+  .blade-upper, .blade-upper-shine {
+    animation: snip-upper 1400ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  .blade-lower, .blade-lower-shine {
+    animation: snip-lower 1400ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  @keyframes snip-upper {
+    0%, 40% { d: path("M -18 0 L 52 -10"); }
+    60%, 100% { d: path("M -18 0 L 52 -26"); }
+  }
+
+  @keyframes snip-lower {
+    0%, 40% { d: path("M -18 0 L 52 10"); }
+    60%, 100% { d: path("M -18 0 L 52 26"); }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Hero Section -->
+  <div id="hero-section">
+    <div class="badge">★ ★ BEST BARBER ★ ★</div>
+    <h1>SHOBANA HAIR <span class="highlight">SALON</span></h1>
+    <div class="tagline">Look sharp, stay sharp — we'll remind you when it's time.</div>
+    <button class="book-now">LET'S GO &rarr;</button>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const heroSection = document.getElementById("hero-section");
+
+      // Check if animation already played this session
+      if (sessionStorage.getItem('animationPlayed') === 'true') {
+        heroSection.classList.add("visible");
+        return; // Skip animation
+      }
+
+      // Mark as played
+      sessionStorage.setItem('animationPlayed', 'true');
+
+      // 1. Inject DOM Elements
+      const animContainer = document.createElement('div');
+      animContainer.id = "anim-container";
+      
+      const panelTop = document.createElement('div');
+      panelTop.className = "anim-panel top";
+      
+      const panelBottom = document.createElement('div');
+      panelBottom.className = "anim-panel bottom";
+      
+      const cutLine = document.createElement('div');
+      cutLine.className = "anim-cut-line";
+      
+      const flash = document.createElement('div');
+      flash.className = "anim-flash";
+      
+      const canvas = document.createElement('canvas');
+      canvas.id = "anim-canvas";
+      
+      const scissorsWrapper = document.createElement('div');
+      scissorsWrapper.className = "anim-scissors-wrapper";
+      scissorsWrapper.innerHTML = `
+        <svg width="100%" height="100%" viewBox="-40 -30 140 60" style="overflow: visible; display: block;">
+          <!-- Handles -->
+          <path d="M 0 0 L -20 -12 M 0 0 L -20 12" stroke="#2a2a2a" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- Finger Holes -->
+          <circle cx="-28" cy="-12" r="10" fill="none" stroke="#FFD700" stroke-width="4"/>
+          <circle cx="-28" cy="12" r="10" fill="none" stroke="#FFD700" stroke-width="4"/>
+          
+          <!-- Blades (Animated paths) -->
+          <path class="blade-upper" stroke="#a0a0a0" stroke-width="10" stroke-linecap="round" fill="none" d="M -18 0 L 52 -10" />
+          <path class="blade-upper-shine" stroke="#d0d0d0" stroke-width="3" stroke-linecap="round" fill="none" d="M -18 0 L 52 -10" />
+          
+          <path class="blade-lower" stroke="#a0a0a0" stroke-width="10" stroke-linecap="round" fill="none" d="M -18 0 L 52 10" />
+          <path class="blade-lower-shine" stroke="#d0d0d0" stroke-width="3" stroke-linecap="round" fill="none" d="M -18 0 L 52 10" />
+          
+          <!-- Pivot -->
+          <circle cx="0" cy="0" r="5" fill="#2a2a2a"/>
+          <circle cx="0" cy="0" r="2" fill="#555"/>
+        </svg>
+      `;
+
+      animContainer.appendChild(panelTop);
+      animContainer.appendChild(panelBottom);
+      animContainer.appendChild(cutLine);
+      animContainer.appendChild(flash);
+      animContainer.appendChild(canvas);
+      animContainer.appendChild(scissorsWrapper);
+      document.body.appendChild(animContainer);
+
+      // 2. Setup Canvas Physics
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let particles = [];
+      const colors = ['#FFD700', '#ffffff', '#1a1a1a'];
+
+      function initParticles() {
+        const numParticles = Math.floor(Math.random() * 21) + 60; // 60-80
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        for (let i = 0; i < numParticles; i++) {
+          const isLeft = Math.random() > 0.5;
+          particles.push({
+            x: centerX + (Math.random() * 40 - 20),
+            y: centerY + (Math.random() * 10 - 5),
+            vx: (Math.random() * 15 + 5) * (isLeft ? -1 : 1), // Shoot left/right
+            vy: (Math.random() * -10 - 2), // Upward initial
+            width: Math.random() * 16 + 4, // 4-20
+            height: Math.random() * 5 + 3, // 3-8
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * Math.PI * 2,
+            rotationSpeed: (Math.random() - 0.5) * 0.4,
+            alpha: 1
+          });
+        }
+      }
+
+      let animFrame;
+      function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = false;
+
+        for (let p of particles) {
+          if (p.alpha <= 0) continue;
+          active = true;
+
+          // Physics
+          p.vy += 0.18; // Gravity
+          p.vx *= 0.98; // Horizontal drag
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rotation += p.rotationSpeed;
+          p.alpha -= 0.018; // Fade out
+
+          if (p.alpha < 0) p.alpha = 0;
+
+          // Draw
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.width/2, -p.height/2, p.width, p.height);
+          ctx.restore();
+        }
+
+        if (active) {
+          animFrame = requestAnimationFrame(animateParticles);
+        }
+      }
+
+      // Handle Resize (minor polish)
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      });
+
+      // 3. Orchestrate Timeline
+      
+      // 650ms: Fade in cut-line
+      setTimeout(() => {
+        cutLine.classList.add('visible');
+      }, 650);
+
+      // 820ms: Flash, Burst Particles
+      setTimeout(() => {
+        flash.classList.add('visible');
+        initParticles();
+        animateParticles();
+        
+        // Remove flash quickly (200ms)
+        setTimeout(() => {
+          flash.classList.remove('visible');
+        }, 50); // Flash peaks then fades over 200ms CSS transition
+      }, 820);
+
+      // 900ms: Open Panels & hide cut line
+      setTimeout(() => {
+        panelTop.classList.add('open');
+        panelBottom.classList.add('open');
+        cutLine.classList.remove('visible');
+      }, 900);
+
+      // 1050ms: Fade in Hero content
+      setTimeout(() => {
+        heroSection.classList.add('visible');
+      }, 1050);
+
+      // ~2500ms: Cleanup DOM elements
+      setTimeout(() => {
+        cancelAnimationFrame(animFrame);
+        if(animContainer.parentNode) {
+          animContainer.parentNode.removeChild(animContainer);
+        }
+      }, 2500);
+
+    });
+  </script>
+</body>
+</html>

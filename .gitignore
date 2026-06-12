@@ -1,0 +1,25 @@
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Executables and large files
+ngrok.exe
+
+# Python caches
+__pycache__/
+*.pyc
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Sensitive credentials
+serviceAccountKey.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
