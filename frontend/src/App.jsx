@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { motion } from 'framer-motion';
 import IntroSequence from './components/IntroSequence';
+import { API_URL } from './config';
 
 const SERVICES = [
   { name: 'Regular Cut', price: 149 },
@@ -399,7 +400,7 @@ function App() {
 
     if (b) {
       const c = customers.find(c => c.id === b.customerId);
-      fetch('/api/notifications/appointment-completed', {
+      fetch(`${API_URL}/api/notifications/appointment-completed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -428,7 +429,7 @@ function App() {
 
     const emailPromises = pending.map(b => {
       const c = customers.find(c => c.id === b.customerId);
-      return fetch('/api/notifications/appointment-completed', {
+      return fetch(`${API_URL}/api/notifications/appointment-completed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +452,7 @@ function App() {
     db.collection("bookings").doc(id).update({ status: 'NO_SHOW' });
     const c = customers.find(c => c.id === b.customerId);
 
-    fetch('/api/notifications/appointment-no-show', {
+    fetch(`${API_URL}/api/notifications/appointment-no-show`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -473,7 +474,7 @@ function App() {
     toProcess.forEach(b => {
       batch.update(db.collection("bookings").doc(b.id), { status: 'NO_SHOW' });
       const c = customers.find(c => c.id === b.customerId);
-      fetch('/api/notifications/appointment-no-show', {
+      fetch(`${API_URL}/api/notifications/appointment-no-show`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -585,7 +586,7 @@ function App() {
       toCancel.forEach(b => {
         batch.update(db.collection("bookings").doc(b.id), { status: 'CANCELLED' });
         const c = customers.find(c => c.id === b.customerId);
-        fetch('/api/notifications/appointment-cancelled', {
+        fetch(`${API_URL}/api/notifications/appointment-cancelled`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -637,7 +638,7 @@ function App() {
     toCancel.forEach(b => {
       batch.update(db.collection("bookings").doc(b.id), { status: 'CANCELLED' });
       const c = customers.find(c => c.id === b.customerId);
-      fetch('/api/notifications/appointment-cancelled', {
+      fetch(`${API_URL}/api/notifications/appointment-cancelled`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -670,7 +671,7 @@ function App() {
     db.collection("bookings").doc(id).update({ status: 'CANCELLED' });
     const c = customers.find(c => c.id === b.customerId);
 
-    fetch('/api/notifications/appointment-cancelled', {
+    fetch(`${API_URL}/api/notifications/appointment-cancelled`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -709,7 +710,7 @@ function App() {
 
     if (r) {
       const c = customers.find(c => c.id === r.customerId);
-      fetch('/api/notifications/reminder-cancelled', {
+      fetch(`${API_URL}/api/notifications/reminder-cancelled`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -795,7 +796,7 @@ function App() {
       service: svcName, price: +svcPrice, date: bookingForm.date, time: bookingForm.time, status: 'PENDING'
     });
 
-    fetch('/api/notifications/appointment-success', {
+    fetch(`${API_URL}/api/notifications/appointment-success`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -868,7 +869,7 @@ function App() {
       service: svcName, price: +svcPrice, date: custBookForm.date, time: custBookForm.time, status: 'PENDING'
     });
 
-    fetch('/api/notifications/appointment-success', {
+    fetch(`${API_URL}/api/notifications/appointment-success`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -923,7 +924,7 @@ function App() {
       await db.collection("reminders").add(reminderData);
       console.log("✅ Reminder stored");
 
-      fetch('/api/notifications/reminder-scheduled', {
+      fetch(`${API_URL}/api/notifications/reminder-scheduled`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -961,7 +962,7 @@ function App() {
     if (b) {
       const c = customers.find(x => x.id === b.customerId);
       if (c) {
-        fetch('/api/notifications/appointment-rescheduled', {
+        fetch(`${API_URL}/api/notifications/appointment-rescheduled`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
