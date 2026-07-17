@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
+import { API_URL } from '../config';
 
 const Dashboard = () => {
   const [todayBookings, setTodayBookings] = useState([]);
@@ -14,8 +15,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [bookingsRes, customersRes] = await Promise.all([
-        axios.get('http://localhost:3001/api/bookings/today'),
-        axios.get('http://localhost:3001/api/customers')
+        axios.get(`${API_URL}/api/bookings/today`),
+        axios.get(`${API_URL}/api/customers`)
       ]);
       setTodayBookings(bookingsRes.data);
       setTotalCustomers(customersRes.data.length);

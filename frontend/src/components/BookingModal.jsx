@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { PRICELIST } from '../services';
+import { API_URL } from '../config';
 
 const BookingModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ const BookingModal = ({ isOpen, onClose, onSuccess }) => {
     e.preventDefault();
     try {
       // 1. Create or get customer
-      const customerRes = await axios.post('http://localhost:3001/api/customers', {
+      const customerRes = await axios.post(`${API_URL}/api/customers`, {
         name: formData.name,
         phone: formData.phone
       });
@@ -32,7 +33,7 @@ const BookingModal = ({ isOpen, onClose, onSuccess }) => {
       const appointmentDate = new Date(`${formData.date}T${formData.time}`).toISOString();
 
       // 3. Create booking
-      await axios.post('http://localhost:3001/api/bookings', {
+      await axios.post(`${API_URL}/api/bookings`, {
         customerId,
         service: selectedService.name,
         price: selectedService.price,

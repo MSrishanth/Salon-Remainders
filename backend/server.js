@@ -26,7 +26,9 @@ const strictLimiter = rateLimit({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*'
+}));
 app.use(express.json()); // Mount express.json() to parse payloads
 app.use(globalLimiter); // Apply global rate limit to all requests
 

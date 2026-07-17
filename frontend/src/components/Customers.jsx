@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
+import { API_URL } from '../config';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -12,7 +13,7 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/customers');
+      const res = await axios.get(`${API_URL}/api/customers`);
       setCustomers(res.data);
       setLoading(false);
     } catch (error) {
