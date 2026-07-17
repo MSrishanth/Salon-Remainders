@@ -1296,3 +1296,44 @@ tr:hover {
   0%, 40% { d: path("M -18 0 L 52 10"); }
   60%, 100% { d: path("M -18 0 L 52 26"); }
 }
+
+/* Custom Brutalist & Animation Styles */
+.brutalist-shadow {
+    box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+}
+.brutalist-shadow-sm {
+    box-shadow: 2px 2px 0px 0px rgba(0,0,0,1);
+}
+.brutalist-shadow-hover:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+}
+.brutalist-shadow-active:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+}
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+}
+.text-ink-trap {
+    letter-spacing: -0.02em;
+}
+.reveal-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-up.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.reveal-pop {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reveal-pop.active {
+    opacity: 1;
+    transform: scale(1);
+}

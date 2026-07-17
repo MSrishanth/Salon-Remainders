@@ -5,15 +5,30 @@ import { PrismaClient } from '@prisma/client';
 import twilio from 'twilio';
 import cron from 'node-cron';
 import { DateTime } from 'luxon';
+import rateLimit from 'express-rate-limit';
 import notificationRoutes from './routes/notificationRoutes.js';
 import { sendTransactionalEmail } from './services/emailService.js';
 
 const app = express();
 const prisma = new PrismaClient();
 
+// Rate Limiters
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per `window`
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+});
+
+const strictLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 3, // Limit each IP to 3 account/booking creation requests per `window`
+  message: { error: 'You have reached the maximum allowed limit of 3 requests per 24 hours. Please try again later.' }
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json()); // Mount express.json() to parse payloads
+app.use(globalLimiter); // Apply global rate limit to all requests
 
 // Routes
 app.use('/api/notifications', notificationRoutes);
@@ -35,13 +50,30 @@ app.get('/api/customers', async (req, res) => {
 });
 
 // Create customer
-app.post('/api/customers', async (req, res) => {
+app.post('/api/customers', strictLimiter, async (req, res) => {
   try {
-    const { name, phone } = req.body;
-    let customer = await prisma.customer.findUnique({ where: { phone } });
-    if (!customer) {
-      customer = await prisma.customer.create({ data: { name, phone } });
+    const { name, phone, email } = req.body;
+    
+    // Enforce unique phone or email
+    const conditions = [];
+    if (phone) conditions.push({ phone });
+    if (email) conditions.push({ email });
+    
+    if (conditions.length > 0) {
+      const existingCustomer = await prisma.customer.findFirst({
+        where: { OR: conditions }
+      });
+      if (existingCustomer) {
+        // Since frontend might be relying on get-or-create if it's the exact same phone, 
+        // we can return it if it matches exactly, but we must block different users sharing email/phone.
+        // Actually, the requirement says "make sure multiple accounts should not been made through same email or phone number".
+        // Returning the existing one fulfills this, but if the user wants an error, we should return an error if details don't match, or just return the existing customer.
+        // Let's return the existing one so it doesn't break the frontend's booking modal which uses this as a get-or-create endpoint.
+        return res.json(existingCustomer);
+      }
     }
+    
+    const customer = await prisma.customer.create({ data: { name, phone, email } });
     res.json(customer);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,7 +116,7 @@ app.get('/api/bookings', async (req, res) => {
 });
 
 // Create a booking
-app.post('/api/bookings', async (req, res) => {
+app.post('/api/bookings', strictLimiter, async (req, res) => {
   try {
     const { customerId, service, price, appointmentDate } = req.body;
     const date = new Date(appointmentDate);
@@ -111,15 +143,22 @@ app.post('/api/bookings', async (req, res) => {
             <h1 style="margin: 0;">SHOBANA HAIR SALON</h1>
           </div>
           <div style="padding: 40px; color: #333;">
-            <h2 style="margin-top: 0;">Hi ${booking.customer.name},</h2>
-            <p>Your appointment has been successfully scheduled.</p>
-            <div style="background-color: #fcfcfc; padding: 25px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
-              <p><strong>Service:</strong> ${service}</p>
-              <p><strong>Date & Time:</strong> ${formattedDate}</p>
-              <p><strong>Booking ID:</strong> #SHB-${Math.floor(Math.random() * 90000) + 10000}</p>
-              <p style="border-top: 2px solid #000; padding-top: 15px; margin-top: 15px; font-size: 20px; font-weight: bold;">
-                Total Amount to Pay: ₹${price}
+            <h1 style="margin-top:0; font-size: 32px; font-weight: 900; text-transform: uppercase; color: #000;">BOOKING CONFIRMATION</h1>
+            
+            <div style="margin-bottom: 25px;">
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Service:</strong> ${service}
               </p>
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Date & Time:</strong> ${formattedDate}
+              </p>
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Booking ID:</strong> #SHB-${Math.floor(Math.random() * 90000) + 10000}
+              </p>
+            </div>
+            
+            <div style="border-top: 4px solid #000; padding-top: 20px; margin-top: 20px; margin-bottom: 30px;">
+              <h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #000;">Total Amount to Pay ₹${price}</h2>
             </div>
             <div style="text-align: center;">
               <a href="https://www.google.com/maps/search/?api=1&query=Shobana+Hair+Salon" style="display: inline-block; padding: 14px 28px; background-color: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Get Directions</a>

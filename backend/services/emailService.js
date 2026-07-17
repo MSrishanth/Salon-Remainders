@@ -51,7 +51,12 @@ export const sendTransactionalEmail = async (toEmail, subject, textBody, htmlBod
     console.log(`[EMAIL SUCCESS] Dispatched to: ${toEmail} | ID: ${result.messageId}`);
     return result;
   } catch (error) {
-    console.error(`[EMAIL FAILURE] Failed delivery to: ${toEmail} | Error:`, error.message);
+    console.error(`\n[CRITICAL EMAIL FAILURE] Failed delivery to: ${toEmail}`);
+    console.error(`[SMTP ERROR NAME]:`, error.name);
+    console.error(`[SMTP ERROR MESSAGE]:`, error.message);
+    if (error.response) console.error(`[SMTP SERVER RESPONSE]:`, error.response);
+    if (error.code) console.error(`[SMTP ERROR CODE]:`, error.code);
+    console.error(`----------------------------------------\n`);
     throw error; // Re-throw for upstream error handling in controllers
   }
 };

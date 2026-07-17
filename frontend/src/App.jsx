@@ -22,7 +22,10 @@ const FEATS = [
 
 function App() {
   // Navigation & Auth State
-  const [view, setView] = useState('intro'); // intro, landing, login, barber, customer
+  const [view, setView] = useState(() => {
+    const path = window.location.pathname;
+    return (path === '/' || path === '') ? 'landing' : '404';
+  }); // intro, landing, login, barber, customer, 404
   const [loginRole, setLoginRole] = useState('barber');
   const [loggedInCustomer, setLoggedInCustomer] = useState(null);
   const [barberAuth, setBarberAuth] = useState({ username: 'admin', password: 'admin123', name: 'Barber Admin', phone: '8686383723', email: 'admin@shobanasalon.com' });
@@ -58,7 +61,28 @@ function App() {
   const [emergencyStartTime, setEmergencyStartTime] = useState('13:00');
   const [emergencyEndTime, setEmergencyEndTime] = useState('17:00');
   const [showPassword, setShowPassword] = useState(false);
-  const [modals, setModals] = useState({ booking: false, rem: false, custBook: false, addCust: false, reschedule: false, confirmCancelBooking: false, confirmCancelReminder: false, confirmMarkDone: false, confirmAddLeave: false, confirmEmergencyClose: false });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [modals, setModals] = useState({ booking: false, rem: false, custBook: false, addCust: false, reschedule: false, confirmCancelBooking: false, confirmCancelReminder: false, confirmMarkDone: false, confirmAddLeave: false, confirmEmergencyClose: false, bookingDetails: false });
+
+  // Scroll Animations for Landing Page
+  useEffect(() => {
+    if (view !== 'landing') return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const elements = document.querySelectorAll('.reveal-up, .reveal-pop');
+    elements.forEach(el => observer.observe(el));
+
+    return () => {
+      elements.forEach(el => observer.unobserve(el));
+    };
+  }, [view]);
   const [confirmData, setConfirmData] = useState({ id: null, name: '' });
 
   const [bookingForm, setBookingForm] = useState({ name: '', phone: '', email: '', svc: '', date: '', time: '' });
@@ -68,6 +92,7 @@ function App() {
   const [addCustForm, setAddCustForm] = useState({ name: '', phone: '', email: '' });
   const [remForm, setRemForm] = useState({ name: '', phone: '', email: '', svc: '', date: '', time: '' });
   const [rescheduleForm, setRescheduleForm] = useState({ id: null, date: '', time: '' });
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   // Helpers
   const fmtTime = (t) => {
@@ -88,11 +113,11 @@ function App() {
     const t = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
     return `${d} ${t}`;
   };
-  
+
   const getFilteredTimeOptions = (selectedDate, leavesArray = []) => {
     const allTimes = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'];
     if (!selectedDate) return allTimes.map(t => ({ value: t, label: fmtTime(t), isDisabled: false, labelSuffix: '' }));
-    
+
     const isToday = selectedDate === todayStr();
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -195,7 +220,7 @@ function App() {
     const checkAutoDeliver = async () => {
       const now = new Date();
       const today = todayStr();
-      
+
       for (const r of reminders) {
         if (r.status === 'COMPLETED' && r.remindDate < today) {
           // Delete old delivered reminders to save space
@@ -211,7 +236,7 @@ function App() {
             if (now >= rDate) {
               await db.collection("reminders").doc(r.id).update({ status: 'COMPLETED' });
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     };
@@ -220,73 +245,82 @@ function App() {
     return () => clearInterval(interval);
   }, [reminders]);
 
-  // --- AUTH ---
-  const handleLogin = async (e) => {
+   const handleLogin = async (e) => {
     e.preventDefault();
     const { user, pass, name } = loginForm;
+    const cleanUser = user.trim().toLowerCase();
+    const checkName = name.trim();
     if (loginRole === 'barber') {
-      if (user === barberAuth.username && pass === barberAuth.password) {
+      if (cleanUser === barberAuth.username.toLowerCase() && pass === barberAuth.password) {
         setView('barber');
         setBTab('dashboard');
       } else {
         setLoginForm({ ...loginForm, error: 'Invalid credentials' });
       }
     } else {
-      let c = customers.find(x => x.phone === user);
+      let c = customers.find(x => x.phone === cleanUser || (x.email && x.email.toLowerCase() === cleanUser));
 
       if (!c) {
-        const checkName = name.trim();
-        const isDuplicate = customers.some(x => 
-          (checkName && x.name.toLowerCase() === checkName.toLowerCase()) || 
-          (x.password === pass)
+        const isDuplicate = customers.some(x =>
+          (checkName && x.name.toLowerCase() === checkName.toLowerCase()) ||
+          (x.phone === cleanUser) ||
+          (x.email && x.email.toLowerCase() === cleanUser)
         );
         if (isDuplicate) {
-          setLoginForm({ ...loginForm, error: 'already existed.please try another username/email/phonenumber/password' });
+          setLoginForm({ ...loginForm, error: 'Phone number, email, or username already in use. Please try another.' });
           return;
         }
 
-        const finalName = checkName || user;
+        const finalName = checkName || cleanUser;
+        const isEmail = cleanUser.includes('@');
         const newCustRef = db.collection("customers").doc();
-        c = { id: newCustRef.id, name: finalName, phone: user, password: pass, email: '', visits: 0, spent: 0, lastVisit: 'N/A' };
+        c = { id: newCustRef.id, name: finalName, phone: isEmail ? '' : cleanUser, password: pass, email: isEmail ? cleanUser : '', visits: 0, spent: 0, lastVisit: 'N/A' };
         await newCustRef.set(c);
       } else {
-        if (c.password && c.password !== pass) {
-          setLoginForm({ ...loginForm, error: 'Invalid password' });
+        if (c.lockoutUntil && Date.now() < c.lockoutUntil) {
+          setLoginForm({ ...loginForm, error: 'Account locked due to multiple failed attempts. Please try again after 24 hours.' });
           return;
         }
+
+        if (c.password && c.password !== pass) {
+          let failed = (c.failedAttempts || 0) + 1;
+          let updateData = { failedAttempts: failed };
+          
+          if (failed >= 3) {
+            updateData.lockoutUntil = Date.now() + 24 * 60 * 60 * 1000;
+          }
+          await db.collection("customers").doc(c.id).update(updateData);
+          
+          setLoginForm({ ...loginForm, error: failed >= 3 ? 'Account locked due to multiple failed attempts. Please try again after 24 hours.' : 'Invalid password' });
+          return;
+        }
+
+        if (checkName && checkName.toLowerCase() !== c.name.toLowerCase()) {
+           setLoginForm({ ...loginForm, error: 'This phone/email is already registered to a different username.' });
+           return;
+        }
+        
         let needsUpdate = false;
         let updateData = {};
-        if (!c.password) { updateData.password = pass; needsUpdate = true; }
-        if (name.trim() && name.trim() !== c.name) {
-          const isDupName = customers.some(x => x.id !== c.id && x.name.toLowerCase() === name.trim().toLowerCase());
-          if (isDupName) {
-            setLoginForm({ ...loginForm, error: 'already existed.please try another username/email/phonenumber/password' });
-            return;
-          }
-          updateData.name = name.trim();
+        if (c.failedAttempts > 0 || c.lockoutUntil) {
+          updateData.failedAttempts = 0;
+          updateData.lockoutUntil = null;
           needsUpdate = true;
         }
-        
-        // Strict cleanup of existing mangled names
-        if (c.name.startsWith('Customer ')) {
-          const parts = c.name.split(' ');
-          if (parts.length > 2) {
-             updateData.name = parts.slice(1).join(' ');
-             needsUpdate = true;
-          }
-        }
-        
+
+        if (!c.password) { updateData.password = pass; needsUpdate = true; }
+
         if (needsUpdate) {
-           await db.collection("customers").doc(c.id).update(updateData);
-           c = { ...c, ...updateData };
+          await db.collection("customers").doc(c.id).update(updateData);
+          c = { ...c, ...updateData };
         }
       }
-      
+
       setLoggedInCustomer(c);
       setView('customer');
       setCTab('home');
       setCustBookForm(prev => ({ ...prev, name: c.name, email: c.email || '', svc: pendingBookingSvc || prev.svc }));
-      
+
       if (pendingBookingSvc) {
         setModals(m => ({ ...m, custBook: true }));
         setPendingBookingSvc(null);
@@ -313,19 +347,21 @@ function App() {
     e.preventDefault();
     const { name, phone, email, password } = accountForm;
     const checkName = name.trim();
-    
+    const checkPhone = phone.trim();
+    const checkEmail = email.trim().toLowerCase();
+
     // Check for duplicates in other customers
-    const isDuplicate = customers.some(x => 
-      x.id !== loggedInCustomer.id && 
-      (x.phone === phone || (checkName && x.name.toLowerCase() === checkName.toLowerCase()))
+    const isDuplicate = customers.some(x =>
+      x.id !== loggedInCustomer.id &&
+      ((checkPhone && x.phone === checkPhone) || (checkEmail && x.email && x.email.toLowerCase() === checkEmail) || (checkName && x.name.toLowerCase() === checkName.toLowerCase()))
     );
 
     if (isDuplicate) {
-      setAccountForm({ ...accountForm, error: 'Phone number or username already exists for another account.' });
+      setAccountForm({ ...accountForm, error: 'Phone number, email, or username already exists for another account.' });
       return;
     }
 
-    const updatedCustomer = { name: checkName, phone, email, password };
+    const updatedCustomer = { name: checkName, phone: checkPhone, email: checkEmail, password };
     await db.collection("customers").doc(loggedInCustomer.id).update(updatedCustomer);
 
     setLoggedInCustomer({ ...loggedInCustomer, ...updatedCustomer });
@@ -357,10 +393,10 @@ function App() {
     const { id } = confirmData;
     setModals(m => ({ ...m, confirmMarkDone: false }));
     showToast('✅ Completed');
-    
+
     const b = bookings.find(x => x.id === id);
     db.collection("bookings").doc(id).update({ status: 'COMPLETED', completedAt: todayStr() });
-    
+
     if (b) {
       const c = customers.find(c => c.id === b.customerId);
       fetch('/api/notifications/appointment-completed', {
@@ -381,13 +417,13 @@ function App() {
     const batch = db.batch();
     const today = todayStr();
     const pending = bookings.filter(b => b.status === 'PENDING' && b.date === today);
-    
+
     if (pending.length === 0) return;
 
     pending.forEach(b => {
       batch.update(db.collection("bookings").doc(b.id), { status: 'COMPLETED', completedAt: todayStr() });
     });
-    
+
     await batch.commit();
 
     const emailPromises = pending.map(b => {
@@ -410,11 +446,11 @@ function App() {
   const markNoShow = async (id) => {
     const b = bookings.find(x => x.id === id);
     if (!b) return;
-    
+
     showToast('🚫 Marked as No Show');
     db.collection("bookings").doc(id).update({ status: 'NO_SHOW' });
     const c = customers.find(c => c.id === b.customerId);
-    
+
     fetch('/api/notifications/appointment-no-show', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -427,13 +463,13 @@ function App() {
 
   const bulkNoShow = async () => {
     if (selectedBookings.length === 0) return;
-    
+
     setSelectedBookings([]);
     showToast('🚫 Bulk marked as No Show');
-    
+
     const batch = db.batch();
     const toProcess = bookings.filter(b => selectedBookings.includes(b.id) && b.status === 'PENDING');
-    
+
     toProcess.forEach(b => {
       batch.update(db.collection("bookings").doc(b.id), { status: 'NO_SHOW' });
       const c = customers.find(c => c.id === b.customerId);
@@ -446,7 +482,7 @@ function App() {
         })
       }).catch(err => console.error('No-Show API Error:', err));
     });
-    
+
     batch.commit();
   };
 
@@ -454,24 +490,24 @@ function App() {
     setModals(m => ({ ...m, confirmClearHistory: false }));
     showToast('🗑️ Deleting month history...');
     const batch = db.batch();
-    
+
     const today = new Date();
     const currentMonthStr = today.toISOString().split('T')[0].slice(0, 7) + '-01';
-      
-      const toDelete = bookings.filter(b => 
-        (b.status === 'COMPLETED' || b.status === 'CANCELLED' || b.status === 'NO_SHOW') && 
-        b.date && b.date >= currentMonthStr
-      );
-      
-      if (toDelete.length === 0) {
-        showToast('ℹ️ No history to delete for this month.');
-        return;
-      }
-      
-      toDelete.forEach(b => {
-        batch.delete(db.collection("bookings").doc(b.id));
-      });
-      
+
+    const toDelete = bookings.filter(b =>
+      (b.status === 'COMPLETED' || b.status === 'CANCELLED' || b.status === 'NO_SHOW') &&
+      b.date && b.date >= currentMonthStr
+    );
+
+    if (toDelete.length === 0) {
+      showToast('ℹ️ No history to delete for this month.');
+      return;
+    }
+
+    toDelete.forEach(b => {
+      batch.delete(db.collection("bookings").doc(b.id));
+    });
+
     await batch.commit();
     showToast(`✅ ${toDelete.length} bookings permanently deleted.`);
   };
@@ -509,9 +545,9 @@ function App() {
 
   const addLeave = async () => {
     setModals(m => ({ ...m, confirmAddLeave: false }));
-    
+
     const datesToProcess = pendingLeaveDates.length > 0 ? pendingLeaveDates : (leaveDateForm ? [leaveDateForm] : []);
-    
+
     if (datesToProcess.length === 0) {
       showToast('❌ Please select at least one date.');
       return;
@@ -527,22 +563,22 @@ function App() {
       const leaveExists = leaves.find(l => l.date === date);
       if (leaveExists && leaveExists.allDay) continue;
 
-      const leaveData = { 
-        date: date, 
-        allDay: leaveAllDay, 
-        startTime: leaveAllDay ? null : leaveStartTime, 
-        endTime: leaveAllDay ? null : leaveEndTime 
+      const leaveData = {
+        date: date,
+        allDay: leaveAllDay,
+        startTime: leaveAllDay ? null : leaveStartTime,
+        endTime: leaveAllDay ? null : leaveEndTime
       };
-      
+
       batch.set(db.collection("leaves").doc(date), leaveData);
 
       const pendingOnDate = bookings.filter(b => b.date === date && b.status === 'PENDING');
-      
-      const toCancel = leaveAllDay 
-        ? pendingOnDate 
+
+      const toCancel = leaveAllDay
+        ? pendingOnDate
         : pendingOnDate.filter(b => b.time >= leaveStartTime && b.time < leaveEndTime);
 
-      const cancelReason = leaveAllDay 
+      const cancelReason = leaveAllDay
         ? `Shop will be closed on ${date}.`
         : `Shop will be closed on ${date} from ${fmtTime(leaveStartTime)} to ${fmtTime(leaveEndTime)}.`;
 
@@ -561,7 +597,7 @@ function App() {
         totalCancelled++;
       });
     }
-    
+
     await batch.commit();
     setLeaveDateForm('');
     setPendingLeaveDates([]);
@@ -575,29 +611,29 @@ function App() {
 
   const emergencyCloseShop = async () => {
     setModals(m => ({ ...m, confirmEmergencyClose: false }));
-    
+
     const today = todayStr();
-    
-    const leaveData = { 
-      date: today, 
-      allDay: emergencyAllDay, 
-      startTime: emergencyAllDay ? null : emergencyStartTime, 
-      endTime: emergencyAllDay ? null : emergencyEndTime 
+
+    const leaveData = {
+      date: today,
+      allDay: emergencyAllDay,
+      startTime: emergencyAllDay ? null : emergencyStartTime,
+      endTime: emergencyAllDay ? null : emergencyEndTime
     };
-    
+
     await db.collection("leaves").doc(today).set(leaveData);
-    
+
     const batch = db.batch();
     const todayPending = bookings.filter(b => b.date === today && b.status === 'PENDING');
-    
-    const toCancel = emergencyAllDay 
-      ? todayPending 
+
+    const toCancel = emergencyAllDay
+      ? todayPending
       : todayPending.filter(b => b.time >= emergencyStartTime && b.time < emergencyEndTime);
 
-    const cancelReason = emergencyAllDay 
+    const cancelReason = emergencyAllDay
       ? "Shop is closed for the rest of today."
       : `Shop is closed today from ${fmtTime(emergencyStartTime)} to ${fmtTime(emergencyEndTime)}.`;
-      
+
     toCancel.forEach(b => {
       batch.update(db.collection("bookings").doc(b.id), { status: 'CANCELLED' });
       const c = customers.find(c => c.id === b.customerId);
@@ -611,7 +647,7 @@ function App() {
         })
       }).catch(err => console.error('Emergency Cancel API Error:', err));
     });
-    
+
     await batch.commit();
     showToast(`🚫 Emergency Close: ${toCancel.length} appointments cancelled.`);
   };
@@ -627,13 +663,13 @@ function App() {
     const { id } = confirmData;
     const b = bookings.find(x => x.id === id);
     if (!b) return;
-    
+
     setModals(m => ({ ...m, confirmCancelBooking: false }));
     showToast('❌ Cancelled');
-    
+
     db.collection("bookings").doc(id).update({ status: 'CANCELLED' });
     const c = customers.find(c => c.id === b.customerId);
-    
+
     fetch('/api/notifications/appointment-cancelled', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -670,7 +706,7 @@ function App() {
     const { id } = confirmData;
     const r = reminders.find(x => x.id === id);
     await db.collection("reminders").doc(id).delete();
-    
+
     if (r) {
       const c = customers.find(c => c.id === r.customerId);
       fetch('/api/notifications/reminder-cancelled', {
@@ -710,27 +746,45 @@ function App() {
       }
     }
     const [svcName, svcPrice] = bookingForm.svc.split('|');
+
+    const checkName = bookingForm.name.trim().toLowerCase();
+    const checkPhone = bookingForm.phone.trim();
+    const checkEmail = bookingForm.email.trim().toLowerCase();
     
-    let c = customers.find(x => x.phone === bookingForm.phone);
+    let c = customers.find(x => (checkPhone && x.phone === checkPhone) || (checkEmail && x.email && x.email.toLowerCase() === checkEmail));
+    
+    if (c) {
+      if (checkName && c.name.toLowerCase() !== checkName) {
+        showToast('⚠️ A different name is registered with this phone/email. Please login to book.');
+        return;
+      }
+    } else {
+      const isNameDup = customers.some(x => x.name.toLowerCase() === checkName);
+      if (isNameDup) {
+        showToast('⚠️ This name is already registered with a different phone/email.');
+        return;
+      }
+    }
+
     let customerId;
-    
+
     setModals(m => ({ ...m, booking: false }));
     setBookingForm({ name: '', phone: '', email: '', svc: '', date: '', time: '' });
     showToast('✅ Booked for ' + bookingForm.name);
-    
+
     if (c) {
       customerId = c.id;
       db.collection("customers").doc(customerId).update({
         visits: c.visits + 1,
         spent: c.spent + +svcPrice,
         lastVisit: bookingForm.date,
-        email: bookingForm.email || c.email
+        email: checkEmail || c.email
       });
     } else {
       const newCustRef = db.collection("customers").doc();
       customerId = newCustRef.id;
       db.collection("customers").doc(customerId).set({
-        name: bookingForm.name, phone: bookingForm.phone, email: bookingForm.email,
+        name: bookingForm.name.trim(), phone: checkPhone, email: checkEmail,
         visits: 1, spent: +svcPrice, lastVisit: bookingForm.date
       });
     }
@@ -754,14 +808,16 @@ function App() {
   const submitAddCust = async (e) => {
     e.preventDefault();
     const checkName = addCustForm.name.trim().toLowerCase();
-    const isDup = customers.some(x => x.phone === addCustForm.phone || (checkName && x.name.toLowerCase() === checkName));
+    const checkPhone = addCustForm.phone.trim();
+    const checkEmail = addCustForm.email.trim().toLowerCase();
+    const isDup = customers.some(x => (checkPhone && x.phone === checkPhone) || (checkEmail && x.email && x.email.toLowerCase() === checkEmail) || (checkName && x.name.toLowerCase() === checkName));
     if (isDup) {
-      showToast('⚠️ already existed.please try another username/email/phonenumber/password');
+      showToast('⚠️ Phone number, email, or username already exists.');
       return;
     }
     const newCustRef = db.collection("customers").doc();
-    await newCustRef.set({ name: addCustForm.name, phone: addCustForm.phone, email: addCustForm.email, visits: 0, spent: 0, lastVisit: 'N/A' });
-    
+    await newCustRef.set({ name: addCustForm.name.trim(), phone: checkPhone, email: checkEmail, visits: 0, spent: 0, lastVisit: 'N/A' });
+
     setModals(m => ({ ...m, addCust: false }));
     setAddCustForm({ name: '', phone: '', email: '' });
     showToast('✅ Customer added!');
@@ -780,7 +836,16 @@ function App() {
       }
     }
     const [svcName, svcPrice] = custBookForm.svc.split('|');
+
+    const checkName = custBookForm.name.trim().toLowerCase();
+    const checkEmail = custBookForm.email.trim().toLowerCase();
     
+    const isDup = customers.some(x => x.id !== loggedInCustomer.id && ((checkName && x.name.toLowerCase() === checkName) || (checkEmail && x.email && x.email.toLowerCase() === checkEmail)));
+    if (isDup) {
+      showToast('⚠️ The name or email you entered is already registered to another account.');
+      return;
+    }
+
     setModals(m => ({ ...m, custBook: false }));
     setCustBookForm(prev => ({ ...prev, svc: '', date: '', time: '' }));
     showToast('✅ Booked successfully!');
@@ -816,7 +881,7 @@ function App() {
   const submitManualReminder = async (e) => {
     e.preventDefault();
     console.log("🔥 Reminder function triggered");
-    
+
     let name = remForm.name, phone = remForm.phone, email = remForm.email;
     let customerId = null;
     if (loginRole === 'customer') {
@@ -827,9 +892,9 @@ function App() {
       const c = customers.find(x => x.phone === phone);
       if (c) customerId = c.id;
     }
-    
+
     const formattedTime = fmtTime(remForm.time);
-    
+
     const reminderData = {
       customerId: customerId,
       message: remForm.svc, // Use svc/type as message context
@@ -838,8 +903,8 @@ function App() {
       status: 'PENDING', // Force PENDING per requirements
       createdAt: new Date(),
       // Preserving old fields for UI compatibility if needed, but the prompt requested the specific schema
-      sentAt: nowStr(), 
-      remindDate: remForm.date, 
+      sentAt: nowStr(),
+      remindDate: remForm.date,
       remindTime: formattedTime,
       type: remForm.svc
     };
@@ -890,7 +955,7 @@ function App() {
     }
     const b = bookings.find(x => x.id === rescheduleForm.id);
     await db.collection("bookings").doc(rescheduleForm.id).update({ date: rescheduleForm.date, time: rescheduleForm.time });
-    
+
     setModals(m => ({ ...m, reschedule: false }));
 
     if (b) {
@@ -901,7 +966,7 @@ function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             customerEmail: c.email || '', customerName: c.name, customerPhone: c.phone,
-            serviceName: b.service, 
+            serviceName: b.service,
             appointmentDate: `${rescheduleForm.date} ${fmtTime(rescheduleForm.time)}`,
             oldAppointmentDate: `${b.date} ${fmtTime(b.time)}`
           })
@@ -914,110 +979,296 @@ function App() {
 
   // --- RENDERS ---
   const renderLanding = () => (
-    <div id="landing-page">
-      <nav className="nav">
-        <a className="nav-brand" href="#">
-          <div className="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="6" cy="6" r="3" /><path d="M8.12 8.12 12 12" /><path d="M20 4 8.12 15.88" /><circle cx="6" cy="18" r="3" /><path d="M14.8 14.8 20 20" /></svg></div>
-          <div><div className="nav-title">SHOBANA HAIR SALON</div><div className="nav-sub">PREMIUM GROOMING</div></div>
-        </a>
-        <div className="nav-btns">
-          <button className="brut-btn" onClick={() => { setLoginRole('customer'); setView('login'); }}>📅 Book</button>
-          <button className="brut-btn brut-white" onClick={() => { setLoginRole('customer'); setView('login'); }}>👤 My Visits</button>
-          <button className="brut-btn brut-yellow" onClick={() => { setLoginRole('barber'); setView('login'); }}>🔔 Barber</button>
-        </div>
-      </nav>
-
-      <div className="marquee">
-        <div className="marquee-track">
-          <div className="marquee-items"><span>★ BEST BARBER IN TOWN</span><span>✂ HAIRCUT FROM ₹149</span><span>★ OPEN 8AM–10PM · TUESDAY CLOSED</span><span>✂ CALL 8686383723</span><span>★ SERVICE REMINDERS</span></div>
-          <div className="marquee-items"><span>★ BEST BARBER IN TOWN</span><span>✂ HAIRCUT FROM ₹149</span><span>★ OPEN 8AM–10PM · TUESDAY CLOSED</span><span>✂ CALL 8686383723</span><span>★ SERVICE REMINDERS</span></div>
-        </div>
-      </div>
-
-      <section className="hero">
-        <div className="hero-inner">
-          <div className="hero-text">
-            <div className="hero-badge">★ ★ BEST BARBER ★ ★</div>
-            <h1 className="hero-title">SHOBANA<br />HAIR<br /><span className="hero-highlight">SALON</span></h1>
-            <p className="hero-desc">Look sharp, stay sharp — we’ll remind you when it’s time.</p>
-            <div className="hero-actions">
-              <button className="brut-btn text-lg" onClick={() => { setLoginRole('customer'); setView('login'); }}>BOOK NOW →</button>
-              <a href="tel:8686383723" className="brut-btn brut-white text-lg">📞 86863 83723</a>
-            </div>
+    <div className="bg-background text-on-background font-body-md antialiased overflow-x-hidden">
+      {/* Top Navigation Bar */}
+      <header className="w-full sticky top-0 z-50 bg-background border-b-4 border-on-background brutalist-shadow relative">
+        <div className="flex justify-between items-center px-md w-full max-w-container-max mx-auto h-auto py-md">
+          {/* Brand Logo (Left) */}
+          <div className="font-headline-lg tracking-widest text-on-background uppercase shrink-0 leading-none text-[40px] md:text-[64px]">
+            SHOBANA
           </div>
-          <div className="hero-img-wrap">
-            <div className="brut-card hero-img-card">
-              <img src="https://images.pexels.com/photos/20785318/pexels-photo-20785318.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Barber" />
-            </div>
-            <div className="hero-hours-tag">OPEN 8AM – 10PM</div>
+
+          {/* Desktop Navigation (Center) */}
+          <nav className="hidden lg:flex items-center gap-lg mx-auto">
+            <a className="text-on-background font-headline-md text-headline-md hover:text-primary-container transition-colors" href="#menu">SERVICES</a>
+            <a className="text-on-background font-headline-md text-headline-md hover:text-primary-container transition-colors" href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer">RATE US</a>
+            <a className="text-on-background font-headline-md text-headline-md hover:text-primary-container transition-colors" href="#booking">BOOKINGS</a>
+          </nav>
+
+          {/* Desktop Actions (Right) */}
+          <div className="hidden lg:flex items-center gap-sm shrink-0">
+            <button className="bg-background text-on-background border-4 border-on-background px-md py-base font-headline-md text-headline-md brutalist-shadow-hover flex items-center gap-xs" onClick={() => { setLoginRole('customer'); setView('login'); }}>
+              <span className="material-symbols-outlined">person</span>MY VISITS
+            </button>
+            <button className="bg-primary-container text-on-primary-container border-4 border-on-background px-md py-base font-headline-md text-headline-md brutalist-shadow-hover flex items-center gap-xs" onClick={() => { setLoginRole('barber'); setView('login'); }}>
+              <span className="material-symbols-outlined">notifications</span>BARBER
+            </button>
+            <button className="bg-primary-container text-on-primary-container border-4 border-on-background px-md py-base font-headline-md text-headline-md brutalist-shadow-hover" onClick={() => { setLoginRole('customer'); setView('login'); }} style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
+              BOOK NOW
+            </button>
+          </div>
+
+          {/* Mobile Nav */}
+          <nav className="flex lg:hidden justify-end gap-md items-center ml-auto">
+            <a className="text-on-background font-label-bold text-[18px] md:text-headline-md" href="#menu">SERVICES</a>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-on-background font-label-bold text-[18px] md:text-headline-md flex items-center">
+              <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:hidden bg-background border-b-4 border-on-background p-md space-y-md`} id="mobile-menu">
+          <nav className="flex flex-col gap-md">
+            <button className="text-on-background font-headline-md text-headline-md flex items-center gap-xs" onClick={() => { setLoginRole('customer'); setView('login'); setMobileMenuOpen(false); }}><span className="material-symbols-outlined">person</span>MY VISITS</button>
+            <button className="text-on-background font-headline-md text-headline-md flex items-center gap-xs" onClick={() => { setLoginRole('barber'); setView('login'); setMobileMenuOpen(false); }}><span className="material-symbols-outlined">notifications</span>BARBER</button>
+            <a className="text-on-background font-headline-md text-headline-md" href="#menu" onClick={() => setMobileMenuOpen(false)}>SERVICES</a>
+            <a className="text-on-background font-headline-md text-headline-md" href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" onClick={() => setMobileMenuOpen(false)}>RATE US</a>
+            <a className="text-on-background font-headline-md text-headline-md" href="#booking" onClick={() => setMobileMenuOpen(false)}>BOOKING</a>
+          </nav>
+          <div className="flex flex-col gap-sm pt-md border-t-2 border-on-background">
+            <button className="bg-primary-container text-on-primary-container px-md py-base font-headline-md text-headline-md border-4 border-on-background text-center brutalist-shadow px-xs py-xs text-[12px] md:px-md md:py-base md:text-headline-md" onClick={() => { setLoginRole('customer'); setView('login'); setMobileMenuOpen(false); }}>BOOK NOW</button>
           </div>
         </div>
-      </section>
+      </header>
 
-      <section className="features">
-        <div className="features-inner">
-          {FEATS.map((f, i) => (
-            <div key={i} className="brut-card feat-card">
-              <div className="feat-icon">{f.icon}</div>
-              <div className="feat-title">{f.title}</div>
-              <div className="feat-desc">{f.desc}</div>
-            </div>
-          ))}
+      {/* Hero Section */}
+      <section className="relative min-h-[70vh] lg:min-h-[80vh] flex flex-col md:flex-row items-stretch border-b-4 border-on-background overflow-hidden md:grid md:grid-cols-[1.2fr_0.8fr] md:flex-none">
+        <div className="flex-1 p-md md:p-xl flex flex-col justify-center space-y-md z-10 bg-background md:h-full">
+          <h1 className="font-display-lg-mobile md:font-display-lg text-[80px] md:text-[120px] leading-[0.9] md:leading-none uppercase max-w-4xl text-on-background">SHOBANA&nbsp;<div className="flex"><span className="px-xs">MEN'S&nbsp;</span><span className="bg-primary-container text-on-primary-container px-xs">SALON</span></div></h1>
+          <p className="font-body-md md:font-body-lg text-body-md md:text-body-lg max-w-xl border-l-4 border-primary-container pl-md text-on-surface-variant">Look sharp, stay sharp — we’ll remind you when it’s time.</p>
+          <div className="flex flex-col sm:flex-row gap-md pt-base transition-all duration-700 md:flex-wrap">
+            <button className="bg-primary-container text-on-primary-container border-4 border-on-background px-md md:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" onClick={() => { setLoginRole('customer'); setView('login'); }} style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
+              BOOK NOW
+            </button>
+            <a className="bg-background text-on-background border-4 border-on-background px-md md:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" href="tel:+918686383723" style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
+              CALL NOW
+              <span className="material-symbols-outlined">call</span>
+            </a>
+          </div>
         </div>
-      </section>
-
-      <section className="pricelist-section" style={{ position: 'relative', zIndex: 10 }}>
-        <div className="pricelist-wrap">
-          <motion.div 
-            className="brut-card pricelist-card"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            whileHover={{ scale: 1.02, rotateX: 5, rotateY: 5 }}
-            variants={{
-              hidden: { opacity: 0, y: 50, rotateX: 20 },
-              visible: { 
-                opacity: 1, y: 0, rotateX: 0,
-                transition: { type: 'spring', stiffness: 100, damping: 15, staggerChildren: 0.1, delayChildren: 0.2 }
-              }
-            }}
-            style={{ transformStyle: 'preserve-3d', perspective: 1000 }}
-          >
-            <div className="pricelist-header">
-              <div className="pricelist-title">PRICE<span className="script-text">list</span></div>
-              <div className="pricelist-line"></div>
-            </div>
-            <div className="pricelist-body">
-              {SERVICES.map((s, i) => (
-                <motion.div 
-                  key={i} 
-                  className={`price-row clickable ${i % 2 === 0 ? 'price-row-dark' : 'price-row-light'}`}
-                  onClick={() => setLandingServiceModal(s)}
-                  variants={{
-                    hidden: { opacity: 0, x: -40 },
-                    visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 120 } }
-                  }}
-                >
-                  <span className="pr-name">{s.name}</span>
-                  <span className="pr-price">₹{s.price}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-          <div className="pricelist-cta">
-            <button className="brut-btn text-lg" onClick={() => { setLoginRole('customer'); setView('login'); }}>BOOK A SERVICE →</button>
+        <div className="flex-1 w-full relative bg-surface-container border-t-4 md:border-t-0 md:border-l-4 border-on-background overflow-hidden md:aspect-auto md:h-full md:w-full h-[300px] md:relative min-h-[400px]">
+          <img className="w-full h-full object-cover" src="/images/chair.jpg" alt="Barber Chair" />
+          <div className="absolute bottom-md left-md bg-primary-container text-on-primary-container p-sm brutalist-shadow border-4 border-on-background reveal-up">
+            <p className="font-headline-md text-[18px] md:text-headline-md uppercase">SINCE 1998</p>
           </div>
         </div>
       </section>
 
-      <footer className="foot">
-        <div className="foot-inner">
-          <div><div className="foot-brand">SHOBANA HAIR SALON</div><div className="foot-sub">★ ★ BEST BARBER ★ ★</div></div>
-          <div><div className="foot-heading">HOURS</div><div>🕐 Mon, Wed–Sun: 8AM – 10PM</div><div style={{ marginTop: '4px', color: '#ff6b6b' }}>🚫 Tuesday: CLOSED</div></div>
-          <div><div className="foot-heading">CONTACT</div><div style={{ marginBottom: '8px' }}><a href="tel:8686383723" style={{ color: 'inherit', textDecoration: 'none' }}>📞 86863 83723</a></div><div><a href="https://maps.google.com/?q=SHOBANA+MEANS+BEAUTY+SALON+Boosareddy+Guda,+Suman+Housing+Colony,+West+Marredpally,+Hyderabad,+Secunderabad,+Telangana+500026" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>📍 Visit us today</a></div></div>
+      {/* Value Proposition */}
+      <section className="py-lg md:py-xl px-md max-w-container-max mx-auto" id="services">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md md:gap-lg">
+          <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 reveal-up" style={{ transitionDelay: '0ms' }}>
+            <div className="text-[48px] md:text-[64px] mb-base">✂️</div>
+            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Precision Haircuts</h3>
+            <p className="font-body-md text-body-md">Engineered for your face shape. From classic tapers to modern skin fades, we execute with absolute precision.</p>
+          </div>
+          <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 reveal-up" style={{ transitionDelay: '100ms' }}>
+            <div className="text-[48px] md:text-[64px] mb-base">🧴</div>
+            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Premium Grooming</h3>
+            <p className="font-body-md text-body-md">Utilizing world-class products for beard sculpting, hot towel shaves, and specialized facial treatments.</p>
+          </div>
+          <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 sm:col-span-2 lg:col-span-1 reveal-up" style={{ transitionDelay: '200ms' }}>
+            <div className="text-[48px] md:text-[64px] mb-base">👑</div>
+            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">True Advocacy</h3>
+            <p className="font-body-md text-body-md">Join our brotherhood. We prioritize consistency and customer comfort in every single visit.</p>
+          </div>
         </div>
-        <div className="foot-bottom">© 2026 SHOBANA HAIR SALON · BUILT WITH ✂</div>
+      </section>
+
+      {/* Price List / Service Menu */}
+      <section className="bg-on-background text-background py-lg md:py-xl" id="menu">
+        <div className="max-w-container-max mx-auto px-md">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-md reveal-up md:flex-wrap" id="price-header-container">
+            <div>
+              <h2 className="font-display-lg text-[40px] md:text-display-lg leading-none mb-xs text-background">THE SERVICE MENU</h2>
+              <p className="font-headline-md text-headline-md text-black uppercase reveal-pop" id="starting-price-text">STARTING FROM ₹149</p>
+            </div>
+            <div className="bg-primary-container text-on-primary-container px-sm md:px-md py-sm font-label-bold text-[12px] md:text-label-bold brutalist-shadow border-4 border-background w-full md:w-auto text-center">
+              ALL SERVICES INCLUDE COMPLIMENTARY STYLING
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-4 border-background reveal-up">
+            {SERVICES.map((s, i) => (
+              <div key={i} className={`flex justify-between items-center p-md border-background hover:bg-primary-container hover:text-on-primary-container transition-all group cursor-pointer relative ${i < SERVICES.length - (SERVICES.length % 2 === 0 ? 2 : 1) ? 'md:border-b-4' : 'md:border-b-0'} ${i < SERVICES.length - 1 ? 'border-b-4' : 'border-b-0'} ${i % 2 === 0 ? 'md:border-r-4' : 'md:border-r-0'}`} onClick={() => setLandingServiceModal(s)}>
+                <div className="flex flex-col transition-transform duration-300 group-hover:translate-x-4">
+                  <span className="font-headline-lg text-[24px] md:text-headline-lg uppercase">{s.name}</span>
+                </div>
+                <span className="font-display-lg-mobile text-[32px] md:text-display-lg-mobile transition-transform duration-300 group-hover:-translate-x-2">₹{s.price}</span>
+                {i === 1 && (
+                  <div className="absolute -top-3 -right-2 md:-top-4 md:-right-4 bg-error text-on-error font-label-bold text-[10px] md:text-[12px] px-sm py-xs border-2 border-background rotate-12 z-20">POPULAR</div>
+                )}
+                {i === 2 && (
+                  <span className="font-label-bold text-[10px] md:text-label-bold bg-on-background text-background px-xs w-fit absolute bottom-2 left-6">BEST SELLER</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Visual Experience / Gallery */}
+      <section className="py-lg md:py-xl" id="gallery">
+        <div className="px-md max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-4 gap-md">
+          <div className="col-span-2 row-span-1 md:row-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[300px] md:h-[600px] reveal-up">
+            <img className="w-full h-full object-cover" src="/images/shop.jpg" />
+          </div>
+          <div className="border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" />
+          </div>
+          <div className="border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" />
+          </div>
+          <div className="col-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
+            <img className="w-full h-full object-cover" src="/images/shop1.jpg" />
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section className="bg-surface-container py-lg md:py-xl border-y-4 border-on-background" id="reviews">
+        <div className="max-w-container-max mx-auto px-md">
+          <h2 className="font-display-lg text-[40px] md:text-display-lg mb-lg text-center uppercase">VOICES OF THE SHARP</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md md:gap-lg reveal-up">
+            <div className="bg-background border-4 border-on-background p-md md:p-lg brutalist-shadow relative">
+              <div className="flex gap-xs mb-sm">
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+              </div>
+              <p className="font-headline-md text-[18px] md:text-headline-md mb-base">"Best haircut experience. Clean and professional."</p>
+              <p className="font-label-bold text-label-bold uppercase border-t-4 border-on-background pt-sm">— RAHUL M.</p>
+              <div className="absolute -bottom-4 -left-4 text-4xl text-primary-container font-headline-lg">"</div>
+            </div>
+            <div className="bg-primary-container text-on-primary-container border-4 border-on-background p-md md:p-lg brutalist-shadow relative">
+              <div className="flex gap-xs mb-sm">
+                <span className="material-symbols-outlined text-on-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-on-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-on-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-on-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-on-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+              </div>
+              <p className="font-headline-md text-[18px] md:text-headline-md mb-base">"Affordable and high quality service. The staff knows their fades!"</p>
+              <p className="font-label-bold text-label-bold uppercase border-t-4 border-on-primary-container pt-sm">— VIVEK K.</p>
+            </div>
+            <div className="bg-background border-4 border-on-background p-md md:p-lg brutalist-shadow relative sm:col-span-2 lg:col-span-1">
+              <div className="flex gap-xs mb-sm">
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+              </div>
+              <p className="font-headline-md text-[18px] md:text-headline-md mb-base">"My go-to salon every month! Consistency is key and they deliver."</p>
+              <p className="font-label-bold text-label-bold uppercase border-t-4 border-on-background pt-sm">— ARJUN S.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Location + Map */}
+      <section className="py-lg md:py-xl px-md max-w-container-max mx-auto" id="location">
+        <div className="flex flex-col lg:flex-row border-4 border-on-background overflow-hidden brutalist-shadow bg-surface-container">
+          <div className="flex-1 p-md md:p-lg flex flex-col justify-center space-y-md lg:space-y-lg md:flex-wrap">
+            <h2 className="font-display-lg text-[40px] md:text-display-lg uppercase leading-none">FIND US</h2>
+            <div className="space-y-sm md:space-y-md">
+              <div className="flex items-start gap-sm">
+                <span className="material-symbols-outlined text-primary-container mt-1 shrink-0">location_on</span>
+                <div>
+                  <p className="font-headline-md text-headline-md uppercase">Address</p>
+                  <p className="font-body-md md:font-body-lg text-body-md md:text-body-lg text-on-surface-variant">Boosareddy Guda, West Marredpally, Secunderabad, Telangana 500026</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-sm">
+                <span className="material-symbols-outlined text-primary-container mt-1 shrink-0">schedule</span>
+                <div>
+                  <p className="font-headline-md text-headline-md uppercase">Hours</p>
+                  <p className="font-body-md md:font-body-lg text-body-md md:text-body-lg text-on-surface-variant">Daily: 08:00 AM – 10:00 PM</p>
+                </div>
+              </div>
+            </div>
+            <a className="bg-primary-container text-on-primary-container px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover border-4 border-on-background inline-flex items-center justify-center gap-sm w-full md:w-fit uppercase" href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }} target="_blank" rel="noreferrer">
+              GET DIRECTIONS
+              <span className="material-symbols-outlined">directions</span>
+            </a>
+          </div>
+          <a className="flex-1 h-[300px] md:h-[400px] border-t-4 lg:border-t-0 lg:border-l-4 border-on-background reveal-up w-full overflow-hidden block hover:opacity-90 transition-opacity" href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer">
+            <img alt="Map of Shobana Salon" className="w-full h-full object-cover" src="/images/map.jpg" />
+          </a>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="bg-primary-container py-lg md:py-xl text-center border-t-4 border-on-background" id="booking">
+        <div className="max-w-4xl mx-auto px-md space-y-md md:space-y-lg text-on-primary-container">
+          <h2 className="font-display-lg text-[40px] md:text-display-lg uppercase leading-[1.1] md:leading-none">READY FOR A TRANSFORMATION?</h2>
+          <p className="font-headline-md text-[18px] md:text-headline-md max-w-2xl mx-auto uppercase">WALK IN OR BOOK YOUR SLOT NOW TO AVOID THE WAIT. WE ARE READY WHEN YOU ARE.</p>
+          <div className="flex flex-col sm:flex-row gap-md justify-center items-center md:flex-wrap">
+            <button className="w-full sm:w-auto bg-background text-on-background px-md md:px-xl py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover border-4 border-on-background inline-flex items-center justify-center gap-sm uppercase" onClick={() => { setLoginRole('customer'); setView('login'); }} style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>BOOK A SERVICE</button>
+            <a className="w-full sm:w-auto bg-surface-container text-on-surface px-md md:px-xl py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover border-4 border-on-background inline-flex items-center justify-center gap-sm uppercase" href="tel:+918686383723" style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>CALL NOW<span className="material-symbols-outlined">call</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-background text-on-background py-lg border-t-4 border-on-background mb-20 lg:mb-0">
+        <div className="max-w-container-max mx-auto px-md">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg mb-lg">
+            <div className="flex flex-col gap-xs">
+              <div className="font-headline-lg text-[28px] md:text-headline-lg tracking-tighter uppercase">SHOBANA HAIR SALON</div>
+              <div className="font-label-bold text-label-bold text-primary-container">★ ★ BEST BARBER ★ ★</div>
+            </div>
+            <div className="flex flex-col gap-sm">
+              <div className="font-headline-md text-headline-md uppercase border-b-2 border-on-background w-fit mb-xs">HOURS</div>
+              <div className="font-body-md text-body-md flex items-center gap-xs">
+                <span>🕐</span> Mon, Wed–Sun: 8AM – 10PM
+              </div>
+              <div className="font-body-md text-body-md flex items-center gap-xs text-error">
+                <span>🚫</span> Tuesday: CLOSED
+              </div>
+            </div>
+            <div className="flex flex-col gap-sm">
+              <div className="font-headline-md text-headline-md uppercase border-b-2 border-on-background w-fit mb-xs">CONTACT</div>
+              <div className="font-body-md text-body-md flex items-center gap-xs">
+                <span>📞</span> <a href="tel:+918686383723" className="hover:text-primary-container transition-colors">86863 83723</a>
+              </div>
+              <div className="font-body-md text-body-md flex items-center gap-xs">
+                <span>📍</span> <a href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer" className="hover:text-primary-container transition-colors">Visit us today</a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t-4 border-on-background pt-md flex flex-col md:flex-row justify-between items-center gap-sm">
+            <p className="font-label-bold text-[10px] md:text-label-bold uppercase opacity-60">© 2026 SHOBANA HAIR SALON · BUILT WITH ✂</p>
+            <div className="flex gap-md font-label-bold text-[10px] md:text-label-bold opacity-60">
+              <a className="hover:opacity-100 transition-opacity hover:text-primary-container" href="#">INSTAGRAM</a>
+              <a className="hover:opacity-100 transition-opacity hover:text-primary-container" href="#">FACEBOOK</a>
+            </div>
+          </div>
+        </div>
       </footer>
+
+      {/* Bottom Mobile Nav */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t-4 border-on-background flex items-center justify-around h-20 px-md brutalist-shadow gap-xs">
+        <button onClick={() => window.scrollTo(0, 0)} className="flex flex-col items-center justify-center gap-1 bg-primary-container text-black px-md py-xs rounded-full transition-all brutalist-shadow-sm">
+          <span className="material-symbols-outlined">home</span>
+          <span className="font-label-bold text-[10px] uppercase">HOME</span>
+        </button>
+        <button onClick={() => { setLoginRole('customer'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
+          <span className="material-symbols-outlined">content_cut</span>
+          <span className="font-label-bold text-[10px] uppercase">BOOK</span>
+        </button>
+        <button onClick={() => { setLoginRole('customer'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
+          <span className="material-symbols-outlined">history</span>
+          <span className="font-label-bold text-[10px] uppercase">VISITS</span>
+        </button>
+        <button onClick={() => { setLoginRole('barber'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
+          <span className="material-symbols-outlined">person</span>
+          <span className="font-label-bold text-[10px] uppercase">PROFILE</span>
+        </button>
+      </nav>
     </div>
   );
 
@@ -1061,7 +1312,7 @@ function App() {
     const monthRev = bookings.filter(b => b.status === 'COMPLETED' && ((b.completedAt && b.completedAt.startsWith(currentMonthStr)) || (!b.completedAt && b.date.startsWith(currentMonthStr)))).reduce((a, b) => a + Number(b.price), 0);
 
     const pending = bookings.filter(b => b.status === 'PENDING' && b.date === today).sort((a, b) => ((a.date || '') + (a.time || '')).localeCompare((b.date || '') + (b.time || '')));
-    
+
     let bookList = [...bookings].sort((a, b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')));
     if (bFilter !== 'all') bookList = bookList.filter(b => b.status === bFilter);
     if (bDateFilter) bookList = bookList.filter(b => b.date === bDateFilter);
@@ -1111,7 +1362,7 @@ function App() {
                   <table>
                     <thead><tr><th><input type="checkbox" onChange={(e) => setSelectedBookings(e.target.checked ? pending.map(b => b.id) : [])} checked={selectedBookings.length === pending.length && pending.length > 0} /></th><th>Date</th><th>Time</th><th>Customer</th><th>Phone</th><th>Service</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {pending.length === 0 ? <tr><td colSpan="9"><div className="empty"><p>No upcoming bookings</p></div></td></tr> : 
+                      {pending.length === 0 ? <tr><td colSpan="9"><div className="empty"><p>No upcoming bookings</p></div></td></tr> :
                         pending.map(b => (
                           <tr key={b.id}>
                             <td><input type="checkbox" checked={selectedBookings.includes(b.id)} onChange={() => toggleSelection(b.id)} /></td><td>{b.date}</td><td style={{ fontWeight: 500 }}>{fmtTime(b.time)}</td><td className="nc">{getCName(b.customerId)}</td><td>{getCPhone(b.customerId)}</td>
@@ -1156,7 +1407,7 @@ function App() {
                   <table>
                     <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {bookList.length === 0 ? <tr><td colSpan="7"><div className="empty"><p>No bookings found</p></div></td></tr> : 
+                      {bookList.length === 0 ? <tr><td colSpan="7"><div className="empty"><p>No bookings found</p></div></td></tr> :
                         bookList.map(b => (
                           <tr key={b.id}>
                             <td>{b.date}</td><td>{fmtTime(b.time)}</td><td className="nc">{getCName(b.customerId)}</td><td>{b.service}</td><td>₹{b.price}</td>
@@ -1183,7 +1434,7 @@ function App() {
                   <table>
                     <thead><tr><th>Name</th><th>Phone</th><th>Visits</th><th>Spent</th><th>Last Visit</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {custList.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No customers found</p></div></td></tr> : 
+                      {custList.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No customers found</p></div></td></tr> :
                         [...custList].reverse().map(c => (
                           <tr key={c.id}><td className="nc">{c.name}</td><td>{c.phone}</td><td>{c.visits}</td><td>₹{c.spent}</td><td>{typeof c.lastVisit === 'object' && c.lastVisit ? new Date(c.lastVisit.seconds * 1000).toLocaleDateString() : (c.lastVisit || 'N/A')}</td><td className="ac"><button className="ab ar" onClick={() => deleteCust(c.id)} title="Delete">✕</button></td></tr>
                         ))
@@ -1207,7 +1458,7 @@ function App() {
                   <table>
                     <thead><tr><th>Set On</th><th>Date</th><th>Time</th><th>Customer</th><th>Phone</th><th>Service</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {reminders.filter(r => r.status !== 'Delivered' || r.remindDate >= today).length === 0 ? <tr><td colSpan="8"><div className="empty"><p>No pending reminders</p></div></td></tr> : 
+                      {reminders.filter(r => r.status !== 'Delivered' || r.remindDate >= today).length === 0 ? <tr><td colSpan="8"><div className="empty"><p>No pending reminders</p></div></td></tr> :
                         [...reminders].filter(r => r.status !== 'Delivered' || r.remindDate >= today).reverse().map(r => {
                           const dateStr = r.remindDate ? r.remindDate : r.sentAt.split(' ')[0];
                           const timeStr = r.remindTime ? r.remindTime : (r.sentAt.split(' ')[1] ? fmtTime(r.sentAt.split(' ')[1]) : '--');
@@ -1288,10 +1539,10 @@ function App() {
                       )}
                       <button type="submit" className="brut-btn" style={{ padding: '0 20px', width: 'fit-content' }}>{pendingLeaveDates.length > 1 ? `Add ${pendingLeaveDates.length} Leaves` : 'Add Leave'}</button>
                     </form>
-                    
+
                     <div style={{ marginTop: '20px', maxHeight: '200px', overflowY: 'auto' }}>
-                      {leaves.length === 0 ? <p className="empty" style={{ padding: '10px 0' }}>No specific leaves added.</p> : 
-                        [...leaves].sort((a,b) => a.date.localeCompare(b.date)).map(l => (
+                      {leaves.length === 0 ? <p className="empty" style={{ padding: '10px 0' }}>No specific leaves added.</p> :
+                        [...leaves].sort((a, b) => a.date.localeCompare(b.date)).map(l => (
                           <div key={l.date} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid #eee' }}>
                             <span>{l.date} {l.allDay ? '(All Day)' : `(${fmtTime(l.startTime)} - ${fmtTime(l.endTime)})`}</span>
                             <button type="button" onClick={() => removeLeave(l.date)} style={{ background: 'none', border: 'none', color: '#d73a49', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
@@ -1303,7 +1554,7 @@ function App() {
                     <div style={{ marginTop: '40px', padding: '20px', border: '1px solid #d73a49', borderRadius: '8px', backgroundColor: '#ffebe9' }}>
                       <h3 style={{ color: '#d73a49', margin: '0 0 10px 0' }}>Emergency Action</h3>
                       <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem' }}>Instantly close shop for today. Cancels relevant bookings and emails customers.</p>
-                      
+
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <input type="checkbox" checked={emergencyAllDay} onChange={e => setEmergencyAllDay(e.target.checked)} /> All Day
@@ -1320,7 +1571,7 @@ function App() {
                           </select>
                         </div>
                       )}
-                      
+
                       <button className="brut-btn" onClick={() => setModals(m => ({ ...m, confirmEmergencyClose: true }))} style={{ backgroundColor: '#cb2431', width: '100%', border: 'none' }}>🚨 Close Shop Today</button>
                     </div>
                   </div>
@@ -1338,7 +1589,7 @@ function App() {
     const today = todayStr();
     const mine = bookings.filter(b => b.customerId === loggedInCustomer.id);
     const myRems = reminders.filter(r => r.customerId === loggedInCustomer.id && (r.status !== 'Delivered' || r.remindDate >= today));
-    
+
     const upB = mine.filter(b => b.status === 'PENDING');
     const pastB = mine.filter(b => b.status === 'COMPLETED');
     const upcoming = [...mine].filter(b => b.status === 'PENDING').sort((a, b) => ((a.date || '') + (a.time || '')).localeCompare((b.date || '') + (b.time || '')));
@@ -1386,7 +1637,7 @@ function App() {
                       <thead><tr><th>Date</th><th>Time</th><th>Service</th><th>Amount</th></tr></thead>
                       <tbody>
                         {upcoming.map(b => (
-                          <tr key={b.id}>
+                          <tr key={b.id} onClick={() => { setSelectedBooking(b); setModals(m => ({ ...m, bookingDetails: true })); }} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f9f9f9'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                             <td>{b.date}</td>
                             <td>{fmtTime(b.time)}</td>
                             <td>{b.service}</td>
@@ -1409,9 +1660,9 @@ function App() {
                   <table>
                     <thead><tr><th>Date</th><th>Time</th><th>Service</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {mine.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No bookings history</p></div></td></tr> : 
+                      {mine.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No bookings history</p></div></td></tr> :
                         [...mine].sort((a, b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || ''))).map(b => (
-                          <tr key={b.id}>
+                          <tr key={b.id} onClick={() => { setSelectedBooking(b); setModals(m => ({ ...m, bookingDetails: true })); }} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#f9f9f9'} onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                             <td>{b.date}</td><td>{fmtTime(b.time)}</td><td>{b.service}</td><td>₹{b.price}</td>
                             <td><span className={`badge ${sCls(b.status)}`}>{b.status}</span></td>
                             <td className="ac">{b.status === 'PENDING' && <button className="ab ar" onClick={() => openConfirmCancelB(b.id, getCName(b.customerId))} title="Cancel Booking">✕</button>}</td>
@@ -1436,7 +1687,7 @@ function App() {
                   <table>
                     <thead><tr><th>Set On</th><th>Date</th><th>Time</th><th>Service</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
-                      {myRems.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No scheduled reminders</p></div></td></tr> : 
+                      {myRems.length === 0 ? <tr><td colSpan="6"><div className="empty"><p>No scheduled reminders</p></div></td></tr> :
                         [...myRems].reverse().map(r => {
                           const dateStr = r.remindDate ? r.remindDate : r.sentAt.split(' ')[0];
                           const timeStr = r.remindTime ? r.remindTime : (r.sentAt.split(' ')[1] ? fmtTime(r.sentAt.split(' ')[1]) : '--');
@@ -1571,6 +1822,30 @@ function App() {
         </div>
       )}
 
+      {modals.bookingDetails && selectedBooking && (
+        <div className="mo open">
+          <div className="modal">
+            <div className="mh"><h2>Booking Details</h2><button className="mc" onClick={() => setModals(m => ({ ...m, bookingDetails: false }))}>&times;</button></div>
+            <div className="mb">
+              <div style={{ marginBottom: '15px', lineHeight: '1.8' }}>
+                <p><strong>Customer Name:</strong> {loggedInCustomer?.name}</p>
+                <p><strong>Email Address:</strong> {loggedInCustomer?.email || 'N/A'}</p>
+                <p><strong>Service:</strong> {selectedBooking.service}</p>
+                <p><strong>Date & Time:</strong> {selectedBooking.date} at {fmtTime(selectedBooking.time)}</p>
+                <p><strong>Price:</strong> ₹{selectedBooking.price}</p>
+              </div>
+            </div>
+            <div className="mf" style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn-cancel" style={{ flex: 1 }} onClick={() => setModals({ ...modals, bookingDetails: false })}>Close</button>
+              <button className="brut-btn" style={{ flex: 1 }} onClick={() => {
+                setModals({ ...modals, bookingDetails: false, reschedule: true });
+                setRescheduleForm({ id: selectedBooking.id, date: selectedBooking.date, time: selectedBooking.time });
+              }}>✏️ Edit / Reschedule</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modals.reschedule && (
         <div className="mo open">
           <div className="modal">
@@ -1625,7 +1900,7 @@ function App() {
                 ) : (
                   <div className="fg"><label className="fl">Email Address</label><input className="fi" type="email" required placeholder="your@email.com" value={remForm.email} onChange={e => setRemForm({ ...remForm, email: e.target.value })} /></div>
                 )}
-                
+
                 <div className="fg">
                   <label className="fl">Select Service</label>
                   <select className="fi" required value={remForm.svc} onChange={e => setRemForm({ ...remForm, svc: e.target.value })}>
@@ -1756,6 +2031,18 @@ function App() {
     </>
   );
 
+  const render404 = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#fcfcfc', color: '#1a1a1a', padding: '20px', textAlign: 'center' }}>
+      <div style={{ fontSize: '4rem', marginBottom: '10px' }}>✂️</div>
+      <h1 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '15px' }}>404</h1>
+      <p style={{ fontSize: '1.2rem', marginBottom: '30px', color: '#666' }}>Oops! The page you're looking for doesn't exist.</p>
+      <button className="brut-btn text-lg" onClick={() => {
+        window.history.pushState({}, '', '/');
+        setView('landing');
+      }}>Return Home</button>
+    </div>
+  );
+
   return (
     <>
       {view === 'intro' && <IntroSequence onFinish={() => setView('landing')} />}
@@ -1763,6 +2050,7 @@ function App() {
       {view === 'login' && renderLogin()}
       {view === 'barber' && renderBarberPortal()}
       {view === 'customer' && renderCustomerPortal()}
+      {view === '404' && render404()}
       {renderModals()}
       {toast && <div className="toast show">{toast}</div>}
     </>

@@ -79,34 +79,26 @@ export const handleAppointmentSuccess = async (req, res) => {
             <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.7;">Premium Grooming Experience</p>
           </div>
           <div class="content">
-            <h2 style="margin-top: 0; font-size: 20px;">Hi ${customerName},</h2>
-            <p>Your appointment has been successfully scheduled. We've reserved a spot just for you!</p>
+            <h1 style="margin-top:0; font-size: 32px; font-weight: 900; text-transform: uppercase; color: #000;">BOOKING CONFIRMATION</h1>
             
-            <div class="invoice-box">
-              <div class="invoice-row">
-                <span class="invoice-label">Service:</span>
-                <span style="font-weight: 600;">${serviceName}</span>
-              </div>
-              <div class="invoice-row">
-                <span class="invoice-label">Date & Time:</span>
-                <span style="font-weight: 600;">${formattedDateDisplay}</span>
-              </div>
-              <div class="invoice-row">
-                <span class="invoice-label">Booking ID:</span>
-                <span style="font-weight: 400; color: #aaa;">#SHB-${Math.floor(Math.random() * 90000) + 10000}</span>
-              </div>
-              <div class="total">
-                <div class="invoice-row" style="margin-bottom: 0;">
-                  <span>Total Amount to Pay</span>
-                  <span>₹${price || '---'}</span>
-                </div>
-              </div>
+            <div style="margin-bottom: 25px;">
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Service:</strong> ${serviceName}
+              </p>
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Date & Time:</strong> ${formattedDateDisplay}
+              </p>
+              <p style="font-size: 20px; margin: 15px 0; color: #000;">
+                <strong style="text-transform: uppercase;">Booking ID:</strong> #SHB-${Math.floor(Math.random() * 90000) + 10000}
+              </p>
             </div>
-
-            <p style="font-size: 14px; color: #666;">Please arrive 10 minutes before your appointment. We will send you automated reminders 1 day, 1 hour, and 15 minutes before the service.</p>
+            
+            <div style="border-top: 4px solid #000; padding-top: 20px; margin-top: 20px; margin-bottom: 30px;">
+              <h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #000;">Total Amount to Pay ₹${totalPrice}</h2>
+            </div>
             
             <div style="text-align: center;">
-              <a href="https://www.google.com/maps/search/?api=1&query=Shobana+Hair+Salon" class="btn">Get Directions</a>
+              <a href="https://maps.google.com/?q=Shobana+Hair+Salon" class="btn">GET DIRECTIONS</a>
             </div>
           </div>
           <div class="footer">
