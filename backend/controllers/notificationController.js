@@ -94,7 +94,7 @@ export const handleAppointmentSuccess = async (req, res) => {
             </div>
             
             <div style="border-top: 4px solid #000; padding-top: 20px; margin-top: 20px; margin-bottom: 30px;">
-              <h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #000;">Total Amount to Pay ₹${totalPrice}</h2>
+              <h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #000;">Total Amount to Pay ₹${price}</h2>
             </div>
             
             <div style="text-align: center;">
