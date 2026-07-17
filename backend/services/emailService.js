@@ -1,9 +1,6 @@
 import 'dotenv/config';
-import { Resend } from 'resend';
 
-// Initialize the Resend client
-// We use the provided key as a fallback, but you should add RESEND_API_KEY to Render Environment Variables!
-const resend = new Resend(process.env.RESEND_API_KEY || 're_83m7FG7j_AhZbPrKvMN8ozKSSUMUwhy75');
+// The rest of your transporter code goes here...
 
 /**
  * Flexible asynchronous helper to dispatch transactional emails using Resend HTTP API
@@ -16,22 +13,29 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_83m7FG7j_AhZbPrKvMN8
  */
 export const sendTransactionalEmail = async (toEmail, subject, textBody, htmlBody) => {
   try {
-    // Note: Resend's free tier requires sending from onboarding@resend.dev
-    // and you can ONLY send emails to the email address you verified on your Resend account.
-    const { data, error } = await resend.emails.send({
-      from: 'Shobana Hair Salon <onboarding@resend.dev>',
-      to: [toEmail],
-      subject: subject,
-      text: textBody,
-      html: htmlBody,
+    const vercelApiUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/api/email` : 'https://shobanamensalon.vercel.app/api/email';
+    
+    const response = await fetch(vercelApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        toEmail,
+        subject,
+        textBody,
+        htmlBody
+      })
     });
 
-    if (error) {
-      console.error(`[RESEND ERROR DETAILS]:`, error);
-      throw error;
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`[VERCEL RELAY ERROR DETAILS]:`, data);
+      throw new Error(data.error || 'Failed to send email via Vercel relay');
     }
 
-    console.log(`[EMAIL SUCCESS] Dispatched via Resend to: ${toEmail} | ID: ${data?.id}`);
+    console.log(`[EMAIL SUCCESS] Dispatched via Vercel Relay to: ${toEmail} | ID: ${data?.messageId}`);
     return data;
   } catch (error) {
     console.error(`\n[CRITICAL EMAIL FAILURE] Failed delivery to: ${toEmail}`);
