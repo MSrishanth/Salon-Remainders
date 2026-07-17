@@ -7,6 +7,7 @@ const BookingModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    email: '',
     serviceId: '',
     date: '',
     time: ''
@@ -24,7 +25,8 @@ const BookingModal = ({ isOpen, onClose, onSuccess }) => {
       // 1. Create or get customer
       const customerRes = await axios.post(`${API_URL}/api/customers`, {
         name: formData.name,
-        phone: formData.phone
+        phone: formData.phone,
+        email: formData.email
       });
       const customerId = customerRes.data.id;
 
@@ -80,6 +82,19 @@ const BookingModal = ({ isOpen, onClose, onSuccess }) => {
               value={formData.phone}
               onChange={handleChange}
               placeholder="e.g. 9876543210"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input 
+              type="email" 
+              name="email" 
+              className="form-control" 
+              required 
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="e.g. your_email@gmail.com"
             />
           </div>
 
