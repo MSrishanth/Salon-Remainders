@@ -137,8 +137,11 @@ app.post('/api/bookings', strictLimiter, async (req, res) => {
 });
 
 // --- CRON JOBS FOR AUTOMATED REMINDERS USING FIREBASE ---
-cron.schedule('* * * * *', async () => {
-  if (!db) return;
+// Extracted to an API endpoint to prevent serverless sleep issues
+app.get('/api/cron', async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: 'Database not initialized' });
+  }
   try {
     const now = DateTime.now().setZone('Asia/Kolkata');
     
@@ -177,8 +180,8 @@ cron.schedule('* * * * *', async () => {
         await db.collection(item.type).doc(item.id).update({ reminded1Day: true });
       }
       
-      // 1 Hour Reminder (between 20 and 60 minutes)
-      if (diffMinutes > 20 && diffMinutes <= 60 && !item.reminded1Hour) {
+      // 1 Hour Reminder (between 15 and 60 minutes) - Gap Fixed
+      if (diffMinutes > 15 && diffMinutes <= 60 && !item.reminded1Hour) {
         await sendCronEmail(item, customer, '1 Hour', dateStr, timeStr);
         await db.collection(item.type).doc(item.id).update({ reminded1Hour: true });
       }
@@ -189,8 +192,11 @@ cron.schedule('* * * * *', async () => {
         await db.collection(item.type).doc(item.id).update({ reminded15Min: true });
       }
     }
+    
+    res.status(200).json({ success: true, message: 'Reminders processed successfully' });
   } catch (error) {
     console.error('Error running Firebase automated reminders:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
