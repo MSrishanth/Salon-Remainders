@@ -1062,17 +1062,17 @@ function App() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md md:gap-lg">
           <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 reveal-up" style={{ transitionDelay: '0ms' }}>
             <div className="text-[48px] md:text-[64px] mb-base">✂️</div>
-            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Precision Haircuts</h3>
+            <h2 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Precision Haircuts</h2>
             <p className="font-body-md text-body-md">Engineered for your face shape. From classic tapers to modern skin fades, we execute with absolute precision.</p>
           </div>
           <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 reveal-up" style={{ transitionDelay: '100ms' }}>
             <div className="text-[48px] md:text-[64px] mb-base">🧴</div>
-            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Premium Grooming</h3>
+            <h2 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">Premium Grooming</h2>
             <p className="font-body-md text-body-md">Utilizing world-class products for beard sculpting, hot towel shaves, and specialized facial treatments.</p>
           </div>
           <div className="bg-surface-container border-4 border-on-background p-md md:p-lg brutalist-shadow group hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 sm:col-span-2 lg:col-span-1 reveal-up" style={{ transitionDelay: '200ms' }}>
             <div className="text-[48px] md:text-[64px] mb-base">👑</div>
-            <h3 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">True Advocacy</h3>
+            <h2 className="font-headline-lg text-[28px] md:text-headline-lg mb-sm uppercase">True Advocacy</h2>
             <p className="font-body-md text-body-md">Join our brotherhood. We prioritize consistency and customer comfort in every single visit.</p>
           </div>
         </div>
