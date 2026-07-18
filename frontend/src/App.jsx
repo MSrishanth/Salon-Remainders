@@ -1049,7 +1049,7 @@ function App() {
           </div>
         </div>
         <div className="flex-1 w-full relative bg-surface-container border-t-4 md:border-t-0 md:border-l-4 border-on-background overflow-hidden md:aspect-auto md:h-full md:w-full h-[300px] md:relative min-h-[400px]">
-          <img className="w-full h-full object-cover" src="/images/chair.jpg" alt="Barber Chair" />
+          <img className="w-full h-full object-cover" src="/images/chair.webp" alt="Barber Chair" />
           <div className="absolute bottom-md left-md bg-primary-container text-on-primary-container p-sm brutalist-shadow border-4 border-on-background reveal-up">
             <p className="font-headline-md text-[18px] md:text-headline-md uppercase">SINCE 1998</p>
           </div>
@@ -1112,7 +1112,7 @@ function App() {
       <section className="py-lg md:py-xl" id="gallery">
         <div className="px-md max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-4 gap-md">
           <div className="col-span-2 row-span-1 md:row-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[300px] md:h-[600px] reveal-up">
-            <img className="w-full h-full object-cover" src="/images/shop.jpg" />
+            <img className="w-full h-full object-cover" src="/images/shop.webp" />
           </div>
           <div className="border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
             <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" />
@@ -1121,7 +1121,7 @@ function App() {
             <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" />
           </div>
           <div className="col-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
-            <img className="w-full h-full object-cover" src="/images/shop1.jpg" />
+            <img className="w-full h-full object-cover" src="/images/shop1.webp" />
           </div>
         </div>
       </section>
@@ -1196,7 +1196,7 @@ function App() {
             </a>
           </div>
           <a className="flex-1 h-[300px] md:h-[400px] border-t-4 lg:border-t-0 lg:border-l-4 border-on-background reveal-up w-full overflow-hidden block hover:opacity-90 transition-opacity" href="https://www.google.com/maps/place/SHOBANA+MEANS+BEAUTY+SALON/@17.4481912,78.5039059,17z/data=!4m6!3m5!1s0x3bcb9a38d62ae7ad:0x6ba4a5f7916444e4!8m2!3d17.4495139!4d78.5041777!16s%2Fg%2F11cmbmfqx0?entry=ttu&g_ep=EgoyMDI2MDcwOC4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noreferrer">
-            <img alt="Map of Shobana Salon" className="w-full h-full object-cover" src="/images/map.jpg" />
+            <img alt="Map of Shobana Salon" className="w-full h-full object-cover" src="/images/map.webp" />
           </a>
         </div>
       </section>
