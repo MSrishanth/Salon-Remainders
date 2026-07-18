@@ -1116,10 +1116,10 @@ function App() {
             <img className="w-full h-full object-cover" src="/images/shop.webp" alt="Shobana Salon interior view" />
           </div>
           <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden">
-            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" alt="Premium styling products" />
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=800&auto=format&fit=crop" alt="Premium styling products" />
           </div>
           <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden">
-            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" alt="Men getting a haircut" />
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" alt="Men getting a haircut" />
           </div>
           <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden lg:col-span-2">
             <img className="w-full h-full object-cover" src="/images/shop1.webp" alt="Barber station and mirror" />
