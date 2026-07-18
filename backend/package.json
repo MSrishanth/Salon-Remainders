@@ -6,12 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.22.2",
@@ -24,8 +21,6 @@
     "twilio": "^5.0.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0",
-    "prisma": "^5.14.0",
-    "sqlite3": "^5.1.7"
+    "nodemon": "^3.1.0"
   }
 }

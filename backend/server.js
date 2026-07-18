@@ -1,42 +1,41 @@
-import 'dotenv/config'; // Absolute line 1 initialization
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
 import twilio from 'twilio';
 import cron from 'node-cron';
 import { DateTime } from 'luxon';
 import rateLimit from 'express-rate-limit';
 import notificationRoutes from './routes/notificationRoutes.js';
 import { sendTransactionalEmail } from './services/emailService.js';
+import { db } from './firebaseAdmin.js';
 
 const app = express();
-const prisma = new PrismaClient();
 
 // Rate Limiters
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per `window`
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
 });
 
 const strictLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 3, // Limit each IP to 3 account/booking creation requests per `window`
-  message: { error: 'You have reached the maximum allowed limit of 3 requests per 24 hours. Please try again later.' }
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'You have reached the maximum allowed limit. Please try again later.' }
 });
 
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*'
 }));
-app.use(express.json()); // Mount express.json() to parse payloads
-app.use(globalLimiter); // Apply global rate limit to all requests
+app.use(express.json());
+app.use(globalLimiter);
 
 // Routes
 app.use('/api/notifications', notificationRoutes);
 
-// Twilio Setup (Optional/Existing)
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Twilio Setup
+const twilioClient = process.env.TWILIO_ACCOUNT_SID ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN) : null;
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
 
 // Ping endpoint for keep-alive
@@ -44,285 +43,187 @@ app.get('/api/ping', (req, res) => {
   res.status(200).send('pong');
 });
 
-// Get all customers
+// Get all customers (Firebase)
 app.get('/api/customers', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Firebase not initialized' });
   try {
-    const customers = await prisma.customer.findMany({
-      include: { bookings: true }
-    });
+    const customersSnapshot = await db.collection('customers').get();
+    const customers = [];
+    customersSnapshot.forEach(doc => customers.push({ id: doc.id, ...doc.data() }));
     res.json(customers);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create customer
+// Create customer (Firebase)
 app.post('/api/customers', strictLimiter, async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Firebase not initialized' });
   try {
     const { name, phone, email } = req.body;
+    const customersRef = db.collection('customers');
     
-    // Enforce unique phone or email
-    const conditions = [];
-    if (phone) conditions.push({ phone });
-    if (email) conditions.push({ email });
-    
-    if (conditions.length > 0) {
-      const existingCustomer = await prisma.customer.findFirst({
-        where: { OR: conditions }
-      });
-      if (existingCustomer) {
-        // Since frontend might be relying on get-or-create if it's the exact same phone, 
-        // we can return it if it matches exactly, but we must block different users sharing email/phone.
-        // Actually, the requirement says "make sure multiple accounts should not been made through same email or phone number".
-        // Returning the existing one fulfills this, but if the user wants an error, we should return an error if details don't match, or just return the existing customer.
-        // Let's return the existing one so it doesn't break the frontend's booking modal which uses this as a get-or-create endpoint.
-        return res.json(existingCustomer);
+    if (phone) {
+      const snapshot = await customersRef.where('phone', '==', phone).get();
+      if (!snapshot.empty) {
+        const existing = snapshot.docs[0];
+        return res.json({ id: existing.id, ...existing.data() });
       }
     }
     
-    const customer = await prisma.customer.create({ data: { name, phone, email } });
-    res.json(customer);
+    const newCust = await customersRef.add({ name, phone, email, createdAt: new Date().toISOString() });
+    res.json({ id: newCust.id, name, phone, email });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get bookings for the day
+// Get bookings for today (Firebase)
 app.get('/api/bookings/today', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Firebase not initialized' });
   try {
-    const startOfDay = DateTime.now().startOf('day').toJSDate();
-    const endOfDay = DateTime.now().endOf('day').toJSDate();
-
-    const bookings = await prisma.booking.findMany({
-      where: {
-        appointmentDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      },
-      include: { customer: true },
-      orderBy: { appointmentDate: 'asc' }
-    });
+    const todayStr = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');
+    const bookingsSnapshot = await db.collection('bookings').where('date', '==', todayStr).get();
+    const bookings = [];
+    bookingsSnapshot.forEach(doc => bookings.push({ id: doc.id, ...doc.data() }));
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all bookings history
+// Get all bookings (Firebase)
 app.get('/api/bookings', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Firebase not initialized' });
   try {
-    const bookings = await prisma.booking.findMany({
-      include: { customer: true },
-      orderBy: { appointmentDate: 'desc' }
-    });
+    const bookingsSnapshot = await db.collection('bookings').get();
+    const bookings = [];
+    bookingsSnapshot.forEach(doc => bookings.push({ id: doc.id, ...doc.data() }));
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create a booking
+// Create booking API (fallback if frontend uses it instead of Firebase direct)
 app.post('/api/bookings', strictLimiter, async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Firebase not initialized' });
   try {
     const { customerId, service, price, appointmentDate } = req.body;
-    const date = new Date(appointmentDate);
-
-    const booking = await prisma.booking.create({
-      data: {
-        customerId,
-        service,
-        price,
-        appointmentDate: date,
-      },
-      include: { customer: true }
-    });
-
-    res.json(booking);
-
-    // Asynchronously send confirmation email if customer has email
-    if (booking.customer && booking.customer.email) {
-      const subject = `Booking Confirmation & Receipt - Shobana Hair Salon`;
-      const formattedDate = DateTime.fromJSDate(date).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
-      const htmlBody = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-          <div style="background-color: #000; color: #fff; padding: 30px; text-align: center;">
-            <h1 style="margin: 0;">SHOBANA HAIR SALON</h1>
-          </div>
-          <div style="padding: 40px; color: #333;">
-            <h1 style="margin-top:0; font-size: 32px; font-weight: 900; text-transform: uppercase; color: #000;">BOOKING CONFIRMATION</h1>
-            
-            <div style="margin-bottom: 25px;">
-              <p style="font-size: 20px; margin: 15px 0; color: #000;">
-                <strong style="text-transform: uppercase;">Service:</strong> ${service}
-              </p>
-              <p style="font-size: 20px; margin: 15px 0; color: #000;">
-                <strong style="text-transform: uppercase;">Date & Time:</strong> ${formattedDate}
-              </p>
-              <p style="font-size: 20px; margin: 15px 0; color: #000;">
-                <strong style="text-transform: uppercase;">Booking ID:</strong> #SHB-${Math.floor(Math.random() * 90000) + 10000}
-              </p>
-            </div>
-            
-            <div style="border-top: 4px solid #000; padding-top: 20px; margin-top: 20px; margin-bottom: 30px;">
-              <h2 style="margin: 0; font-size: 30px; font-weight: 900; color: #000;">Total Amount to Pay ₹${price}</h2>
-            </div>
-            <div style="text-align: center;">
-              <a href="https://www.google.com/maps/search/?api=1&query=Shobana+Hair+Salon" style="display: inline-block; padding: 14px 28px; background-color: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Get Directions</a>
-            </div>
-          </div>
-        </div>
-      `;
-      const textBody = `Hi ${booking.customer.name}, your appointment for ${service} on ${formattedDate} is confirmed. Total Amount to Pay: ₹${price}.`;
-
-      sendTransactionalEmail(booking.customer.email, subject, textBody, htmlBody)
-        .catch(err => console.error('Background Email Error:', err));
+    
+    let dateStr = '', timeStr = '';
+    if (appointmentDate) {
+      const dt = DateTime.fromJSDate(new Date(appointmentDate)).setZone('Asia/Kolkata');
+      dateStr = dt.toFormat('yyyy-MM-dd');
+      timeStr = dt.toFormat('h:mm a');
     }
+    
+    const newBooking = {
+      customerId,
+      service,
+      price: price || 0,
+      date: dateStr,
+      time: timeStr,
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
+    };
+    
+    const docRef = await db.collection('bookings').add(newBooking);
+    res.json({ id: docRef.id, ...newBooking });
+    
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- CRON JOBS FOR AUTOMATED REMINDERS ---
+// --- CRON JOBS FOR AUTOMATED REMINDERS USING FIREBASE ---
 cron.schedule('* * * * *', async () => {
+  if (!db) return;
   try {
-    const now = DateTime.now();
-
-    // 1. ONE DAY REMINDER (24 Hours Before)
-    const bookings1Day = await prisma.booking.findMany({
-      where: {
-        reminded1Day: false,
-        status: 'PENDING',
-        appointmentDate: {
-          gte: now.plus({ hours: 12 }).toJSDate(),
-          lte: now.plus({ hours: 24 }).toJSDate()
-        }
-      },
-      include: { customer: true }
-    });
-
-    for (const booking of bookings1Day) {
-      const formattedDate = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy');
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
-      const message = `Hello ${booking.customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${booking.service} is tomorrow, ${formattedDate} at ${formattedTime}. We look forward to seeing you!`;
-
-      // WhatsApp Reminder
-      await sendWhatsApp(booking.customer.phone, message);
-
-      // Email Reminder
-      if (booking.customer.email) {
-        const subject = `Service Reminder: Your Appointment Tomorrow - Shobana Hair Salon`;
-        const htmlBody = generateReminderTemplate(booking.customer.name, booking.service, `${formattedDate} at ${formattedTime}`, '1 Day');
-        sendTransactionalEmail(booking.customer.email, subject, message, htmlBody)
-          .catch(err => console.error('1-Day Reminder Email Error:', err));
+    const now = DateTime.now().setZone('Asia/Kolkata');
+    
+    const bookingsSnapshot = await db.collection('bookings').where('status', '==', 'PENDING').get();
+    const remindersSnapshot = await db.collection('reminders').where('status', '==', 'PENDING').get();
+    
+    const allPending = [];
+    bookingsSnapshot.forEach(doc => allPending.push({ type: 'bookings', id: doc.id, ...doc.data() }));
+    remindersSnapshot.forEach(doc => allPending.push({ type: 'reminders', id: doc.id, ...doc.data() }));
+    
+    // Pre-fetch all customers to avoid N+1 queries
+    const customersMap = {};
+    const custSnapshot = await db.collection('customers').get();
+    custSnapshot.forEach(doc => { customersMap[doc.id] = doc.data(); });
+    
+    for (const item of allPending) {
+      const dateStr = item.date || item.remindDate;
+      const timeStr = item.time || item.remindTime;
+      if (!dateStr || !timeStr) continue;
+      
+      const fullTimeStr = `${dateStr} ${timeStr}`;
+      let appointmentDate;
+      try {
+        appointmentDate = DateTime.fromFormat(fullTimeStr, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' });
+      } catch(e) { continue; }
+      
+      if (!appointmentDate.isValid) continue;
+      
+      const diffMinutes = appointmentDate.diff(now, 'minutes').minutes;
+      
+      const customer = customersMap[item.customerId] || { name: item.customerName, email: item.customerEmail, phone: item.customerPhone };
+      
+      // 1 Day Reminder (between 12 and 24 hours)
+      if (diffMinutes > 720 && diffMinutes <= 1440 && !item.reminded1Day) {
+        await sendCronEmail(item, customer, '1 Day', dateStr, timeStr);
+        await db.collection(item.type).doc(item.id).update({ reminded1Day: true });
       }
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { reminded1Day: true }
-      });
-    }
-
-    // 2. ONE HOUR REMINDER
-    const bookings1Hour = await prisma.booking.findMany({
-      where: {
-        reminded1Hour: false,
-        status: 'PENDING',
-        appointmentDate: {
-          gte: now.plus({ minutes: 20 }).toJSDate(),
-          lte: now.plus({ hours: 1 }).toJSDate()
-        }
-      },
-      include: { customer: true }
-    });
-
-    for (const booking of bookings1Hour) {
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
-      const message = `Hello ${booking.customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${booking.service} is in 1 hour at ${formattedTime}. See you soon!`;
-
-      // WhatsApp Reminder
-      await sendWhatsApp(booking.customer.phone, message);
-
-      // Email Reminder
-      if (booking.customer.email) {
-        const subject = `Service Reminder: 1 Hour to your Appointment - Shobana Hair Salon`;
-        const htmlBody = generateReminderTemplate(booking.customer.name, booking.service, formattedTime, '1 Hour');
-        sendTransactionalEmail(booking.customer.email, subject, message, htmlBody)
-          .catch(err => console.error('1-Hour Reminder Email Error:', err));
+      
+      // 1 Hour Reminder (between 20 and 60 minutes)
+      if (diffMinutes > 20 && diffMinutes <= 60 && !item.reminded1Hour) {
+        await sendCronEmail(item, customer, '1 Hour', dateStr, timeStr);
+        await db.collection(item.type).doc(item.id).update({ reminded1Hour: true });
       }
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { reminded1Hour: true }
-      });
-    }
-
-    // 3. 15 MINUTE REMINDER
-    const bookings15Min = await prisma.booking.findMany({
-      where: {
-        reminded15Min: false,
-        status: 'PENDING',
-        appointmentDate: {
-          gte: now.toJSDate(),
-          lte: now.plus({ minutes: 15 }).toJSDate()
-        }
-      },
-      include: { customer: true }
-    });
-
-    for (const booking of bookings15Min) {
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
-      const message = `Hello ${booking.customer.name}, your appointment at Shobana Hair Salon is in 15 minutes! We are getting ready for you.`;
-
-      // WhatsApp Reminder
-      await sendWhatsApp(booking.customer.phone, message);
-
-      // Email Reminder
-      if (booking.customer.email) {
-        const subject = `Service Reminder: 15 Minutes Left! - Shobana Hair Salon`;
-        const htmlBody = generateReminderTemplate(booking.customer.name, booking.service, formattedTime, '15 Minutes');
-        sendTransactionalEmail(booking.customer.email, subject, message, htmlBody)
-          .catch(err => console.error('15-Min Reminder Email Error:', err));
+      
+      // 15 Min Reminder (between 0 and 15 minutes)
+      if (diffMinutes > 0 && diffMinutes <= 15 && !item.reminded15Min) {
+        await sendCronEmail(item, customer, '15 Minutes', dateStr, timeStr);
+        await db.collection(item.type).doc(item.id).update({ reminded15Min: true });
       }
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { reminded15Min: true }
-      });
     }
   } catch (error) {
-    console.error('Error running automated reminders:', error);
+    console.error('Error running Firebase automated reminders:', error);
   }
 });
 
-// --- CRON JOB FOR MONTHLY DATA CLEANUP ---
-// Runs every day at midnight to clean old data
-cron.schedule('0 0 * * *', async () => {
-  try {
-    const today = DateTime.now();
-    const startOfCurrentMonth = today.startOf('month').toJSDate();
-
-    // Delete any booking/reminder scheduled before the 1st of the current month
-    const deleted = await prisma.booking.deleteMany({
-      where: {
-        appointmentDate: {
-          lt: startOfCurrentMonth
-        }
-      }
-    });
-
-    if (deleted.count > 0) {
-      console.log(`[CLEANUP] Deleted ${deleted.count} old bookings/reminders from Prisma SQLite database to save storage.`);
-    }
-  } catch (error) {
-    console.error('Error running data cleanup cron job:', error);
+async function sendCronEmail(item, customer, countdown, dateStr, timeStr) {
+  if (!customer.name) return;
+  
+  let formattedDate = DateTime.fromFormat(dateStr, 'yyyy-MM-dd').toFormat('dd/MM/yy');
+  const service = item.service || 'Service';
+  
+  let message = '';
+  let subject = '';
+  
+  if (countdown === '1 Day') {
+    message = `Hello ${customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${service} is tomorrow, ${formattedDate} at ${timeStr}. We look forward to seeing you!`;
+    subject = `Service Reminder: Your Appointment Tomorrow - Shobana Hair Salon`;
+  } else if (countdown === '1 Hour') {
+    message = `Hello ${customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${service} is in 1 hour at ${timeStr}. See you soon!`;
+    subject = `Service Reminder: 1 Hour to your Appointment - Shobana Hair Salon`;
+  } else {
+    message = `Hello ${customer.name}, your appointment at Shobana Hair Salon is in 15 minutes! We are getting ready for you.`;
+    subject = `Service Reminder: 15 Minutes Left! - Shobana Hair Salon`;
   }
-});
 
-/**
- * Helper function to generate professional reminder HTML
- * Customized for different countdown intervals
- */
+  if (customer.phone) {
+    await sendWhatsApp(customer.phone, message);
+  }
+
+  if (customer.email) {
+    const htmlBody = generateReminderTemplate(customer.name, service, `${formattedDate} at ${timeStr}`, countdown);
+    sendTransactionalEmail(customer.email, subject, message, htmlBody).catch(err => console.error('Reminder Email Error:', err));
+  }
+}
+
 function generateReminderTemplate(name, service, time, countdown) {
   let themeColor = '#000000';
   let badgeText = 'RESERVATION';
@@ -338,7 +239,7 @@ function generateReminderTemplate(name, service, time, countdown) {
     badgeText = 'GET READY';
     icon = '⌛';
   } else if (countdown === '15 Minutes') {
-    themeColor = '#c0392b'; // More urgent red
+    themeColor = '#c0392b';
     badgeText = 'FINAL CALL';
     subText = 'We are waiting for you!';
     icon = '🚀';
@@ -407,6 +308,7 @@ function generateReminderTemplate(name, service, time, countdown) {
 }
 
 async function sendWhatsApp(toPhone, message) {
+  if (!twilioClient) return;
   try {
     const formattedPhone = toPhone.startsWith('+') ? toPhone : `+91${toPhone}`;
     await twilioClient.messages.create({
@@ -423,5 +325,4 @@ async function sendWhatsApp(toPhone, message) {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`[SERVER] Node.js & Express server running cleanly on port ${PORT}`);
-  console.log(`[INFO] GMAIL_USER: ${process.env.GMAIL_USER ? 'Configured' : 'MISSING'}`);
 });

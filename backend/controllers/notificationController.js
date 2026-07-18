@@ -1,8 +1,5 @@
 import { sendTransactionalEmail } from '../services/emailService.js';
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 /**
  * Controller to handle notification events
@@ -27,25 +24,7 @@ export const handleAppointmentSuccess = async (req, res) => {
       console.error('Prisma Date Parsing Error:', e);
     }
 
-    // Upsert Customer
-    const customer = await prisma.customer.upsert({
-      where: { phone: customerPhone },
-      update: { name: customerName, email: customerEmail },
-      create: { name: customerName, phone: customerPhone, email: customerEmail }
-    });
-
-    // Create Booking in SQLite via Prisma for CRON reminders
-    await prisma.booking.create({
-      data: {
-        customerId: customer.id,
-        service: serviceName,
-        price: parseInt(price) || 0,
-        appointmentDate: jsDate,
-        status: 'PENDING'
-      }
-    });
-
-    console.log(`[DB SUCCESS] Booking saved for ${customerName} for automated reminders.`);
+    // Prisma logic removed: Backend no longer uses SQLite. Frontend writes to Firebase.
 
     // 3. Generate and send professional HTML invoice
     const subject = `Booking Confirmation & Receipt - Shobana Hair Salon`;
@@ -143,26 +122,7 @@ export const handleReminderScheduled = async (req, res) => {
       console.error('Reminder Date Parsing Error:', e);
     }
 
-    // Upsert Customer to ensure they exist in Prisma
-    const customer = await prisma.customer.upsert({
-      where: { phone: customerPhone },
-      update: { name: customerName, email: customerEmail },
-      create: { name: customerName, phone: customerPhone, email: customerEmail }
-    });
-
-    // Create a dummy "Booking" for the reminder so the CRON job picks it up
-    // We'll mark it as a "REMINDER" in the service name or just let the CRON job treat it as a booking
-    await prisma.booking.create({
-      data: {
-        customerId: customer.id,
-        service: `[REMINDER] ${serviceName}`,
-        price: 0,
-        appointmentDate: jsDate,
-        status: 'PENDING'
-      }
-    });
-
-    console.log(`[DB SUCCESS] Manual reminder saved for ${customerName} at ${fullRemindString}`);
+    // Prisma logic removed: Backend no longer uses SQLite. Frontend writes to Firebase.
 
     // 2. Generate and send Instant Reminder Confirmation Email
     const subject = `Confirmed: Service Reminder Scheduled - Shobana Hair Salon`;
@@ -245,42 +205,7 @@ export const handleAppointmentRescheduled = async (req, res) => {
       console.error('Reschedule Date Parsing Error:', e);
     }
 
-    // Upsert Customer
-    const customer = await prisma.customer.upsert({
-      where: { phone: customerPhone },
-      update: { name: customerName, email: customerEmail },
-      create: { name: customerName, phone: customerPhone, email: customerEmail }
-    });
-
-    // Update existing booking or create new one for cron jobs
-    const existingBookings = await prisma.booking.findMany({
-      where: { customerId: customer.id, status: 'PENDING' }
-    });
-
-    let targetBooking = null;
-    if (oldJsDate) {
-      targetBooking = existingBookings.find(b => Math.abs(b.appointmentDate.getTime() - oldJsDate.getTime()) < 60000);
-    }
-    if (!targetBooking && existingBookings.length > 0) {
-      targetBooking = existingBookings[0];
-    }
-
-    if (targetBooking) {
-      await prisma.booking.update({
-        where: { id: targetBooking.id },
-        data: { appointmentDate: jsDate, reminded1Day: false, reminded1Hour: false, reminded15Min: false }
-      });
-    } else {
-      await prisma.booking.create({
-        data: {
-          customerId: customer.id,
-          service: serviceName || 'Haircut',
-          price: 0,
-          appointmentDate: jsDate,
-          status: 'PENDING'
-        }
-      });
-    }
+    // Prisma logic removed
 
     const subject = `Update: Appointment Rescheduled - Shobana Hair Salon`;
     let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
@@ -344,28 +269,7 @@ export const handleAppointmentCancelled = async (req, res) => {
       console.error('Cancellation Date Parsing Error:', e);
     }
 
-    const customer = await prisma.customer.findUnique({ where: { phone: customerPhone } });
-
-    if (customer) {
-      const existingBookings = await prisma.booking.findMany({
-        where: { customerId: customer.id, status: 'PENDING' }
-      });
-
-      let targetBooking = null;
-      if (appointmentDate) {
-        targetBooking = existingBookings.find(b => Math.abs(b.appointmentDate.getTime() - jsDate.getTime()) < 60000);
-      }
-      if (!targetBooking && existingBookings.length > 0) {
-        targetBooking = existingBookings[0];
-      }
-
-      if (targetBooking) {
-        await prisma.booking.update({
-          where: { id: targetBooking.id },
-          data: { status: 'CANCELLED' }
-        });
-      }
-    }
+    // Prisma logic removed
 
     let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
     const subject = `Appointment Cancelled: ${formattedDateDisplay} - Shobana Hair Salon`;
@@ -436,22 +340,7 @@ export const handleAppointmentNoShow = async (req, res) => {
       console.error('No-Show Date Parsing Error:', e);
     }
 
-    const customer = await prisma.customer.findUnique({ where: { phone: customerPhone } });
-
-    if (customer) {
-      const existingBookings = await prisma.booking.findMany({
-        where: { customerId: customer.id, status: 'PENDING' },
-        orderBy: { appointmentDate: 'desc' },
-        take: 1
-      });
-
-      if (existingBookings.length > 0) {
-        await prisma.booking.update({
-          where: { id: existingBookings[0].id },
-          data: { status: 'CANCELLED' } // Use cancelled in prisma or keep as is if NO_SHOW isn't a valid enum
-        });
-      }
-    }
+    // Prisma logic removed
 
     let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
     const subject = `We missed you today: ${formattedDateDisplay} - Shobana Hair Salon`;
@@ -522,21 +411,7 @@ export const handleReminderCancelled = async (req, res) => {
       console.error('Cancellation Date Parsing Error:', e);
     }
 
-    const customer = await prisma.customer.findUnique({ where: { phone: customerPhone } });
-
-    if (customer) {
-      const existingBookings = await prisma.booking.findMany({
-        where: { customerId: customer.id, status: 'PENDING', service: `[REMINDER] ${serviceName}` },
-        orderBy: { appointmentDate: 'desc' },
-        take: 1
-      });
-
-      if (existingBookings.length > 0) {
-        await prisma.booking.delete({
-          where: { id: existingBookings[0].id }
-        });
-      }
-    }
+    // Prisma logic removed
 
     const subject = `Update: Service Reminder Cancelled - Shobana Hair Salon`;
     let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy');
@@ -626,27 +501,7 @@ export const handleAppointmentCompleted = async (req, res) => {
     }
 
     if (customerPhone) {
-      const customer = await prisma.customer.findUnique({ where: { phone: customerPhone } });
-      if (customer) {
-        const existingBookings = await prisma.booking.findMany({
-          where: { customerId: customer.id, status: 'PENDING' }
-        });
-        
-        let targetBooking = null;
-        if (appointmentDate) {
-          targetBooking = existingBookings.find(b => Math.abs(b.appointmentDate.getTime() - jsDate.getTime()) < 60000);
-        }
-        if (!targetBooking && existingBookings.length > 0) {
-          targetBooking = existingBookings[0];
-        }
-        
-        if (targetBooking) {
-          await prisma.booking.update({
-            where: { id: targetBooking.id },
-            data: { status: 'COMPLETED' }
-          });
-        }
-      }
+    // Prisma logic removed
     }
 
     const subject = `Thank you for visiting Shobana Hair Salon!`;
