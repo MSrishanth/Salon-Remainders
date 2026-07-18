@@ -980,7 +980,7 @@ function App() {
 
   // --- RENDERS ---
   const renderLanding = () => (
-    <div className="bg-background text-on-background font-body-md antialiased overflow-x-hidden">
+    <div className="bg-background text-on-background font-body-md antialiased overflow-x-hidden min-h-[100dvh]">
       {/* Top Navigation Bar */}
       <header className="w-full sticky top-0 z-50 bg-background border-b-4 border-on-background brutalist-shadow relative">
         <div className="flex justify-between items-center px-md lg:px-xl w-full h-auto py-md">
@@ -1050,7 +1050,7 @@ function App() {
           </div>
         </div>
         <div className="w-full relative bg-surface-container border-t-4 lg:border-t-0 lg:border-l-4 border-on-background overflow-hidden h-[300px] md:h-[400px] lg:h-full lg:w-full lg:flex-1">
-          <img className="w-full h-full object-cover" src="/images/chair.webp" alt="Barber Chair" />
+          <img className="w-full h-full object-cover object-right-top lg:object-center" src="/images/chair.webp" alt="Barber Chair" />
           <div className="absolute bottom-md left-md bg-primary-container text-on-primary-container p-sm brutalist-shadow border-4 border-on-background reveal-up">
             <p className="font-headline-md text-[18px] lg:text-headline-md uppercase">SINCE 1998</p>
           </div>

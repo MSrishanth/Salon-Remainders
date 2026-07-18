@@ -435,7 +435,8 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #FFE600
+    background: #FFE600;
+    color: #000;
 }
 
 .login-card {
