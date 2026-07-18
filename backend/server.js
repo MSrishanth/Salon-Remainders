@@ -165,7 +165,12 @@ app.get('/api/cron', async (req, res) => {
       const fullTimeStr = `${dateStr} ${timeStr}`;
       let appointmentDate;
       try {
-        appointmentDate = DateTime.fromFormat(fullTimeStr, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' });
+        // Try parsing 24-hour format (e.g. 16:30)
+        appointmentDate = DateTime.fromFormat(fullTimeStr, 'yyyy-MM-dd HH:mm', { zone: 'Asia/Kolkata' });
+        // If it fails, try parsing 12-hour AM/PM format (e.g. 4:30 PM)
+        if (!appointmentDate.isValid) {
+          appointmentDate = DateTime.fromFormat(fullTimeStr, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' });
+        }
       } catch(e) { continue; }
       
       if (!appointmentDate.isValid) continue;
