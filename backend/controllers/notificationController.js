@@ -51,7 +51,7 @@ export const handleAppointmentSuccess = async (req, res) => {
     const subject = `Booking Confirmation & Receipt - Shobana Hair Salon`;
 
     // Format date for display (dd/mm/yy)
-    let formattedDateDisplay = DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy h:mm a');
+    let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
 
     const htmlBody = `
       <!DOCTYPE html>
@@ -196,7 +196,7 @@ export const handleReminderScheduled = async (req, res) => {
               
               <div class="info-box">
                 <p style="margin:0 0 10px 0;"><strong>Service:</strong> ${serviceName}</p>
-                <p style="margin:0 0 10px 0;"><strong>Reminder Date:</strong> ${DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy')}</p>
+                <p style="margin:0 0 10px 0;"><strong>Reminder Date:</strong> ${DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy')}</p>
                 <p style="margin:0;"><strong>Time:</strong> ${remindTime}</p>
               </div>
 
@@ -283,7 +283,7 @@ export const handleAppointmentRescheduled = async (req, res) => {
     }
 
     const subject = `Update: Appointment Rescheduled - Shobana Hair Salon`;
-    let formattedDateDisplay = DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy h:mm a');
+    let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
 
     const htmlBody = `
       <!DOCTYPE html>
@@ -367,7 +367,7 @@ export const handleAppointmentCancelled = async (req, res) => {
       }
     }
 
-    let formattedDateDisplay = DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy h:mm a');
+    let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
     const subject = `Appointment Cancelled: ${formattedDateDisplay} - Shobana Hair Salon`;
     const baseUrl = process.env.FRONTEND_URL || appUrl || 'http://localhost:5173';
 
@@ -453,7 +453,7 @@ export const handleAppointmentNoShow = async (req, res) => {
       }
     }
 
-    let formattedDateDisplay = DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy h:mm a');
+    let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
     const subject = `We missed you today: ${formattedDateDisplay} - Shobana Hair Salon`;
     const baseUrl = process.env.FRONTEND_URL || appUrl || 'http://localhost:5173';
 
@@ -539,7 +539,7 @@ export const handleReminderCancelled = async (req, res) => {
     }
 
     const subject = `Update: Service Reminder Cancelled - Shobana Hair Salon`;
-    let formattedDateDisplay = DateTime.fromJSDate(jsDate).toFormat('dd/MM/yy');
+    let formattedDateDisplay = DateTime.fromJSDate(jsDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy');
 
     const htmlBody = `
       <!DOCTYPE html>
