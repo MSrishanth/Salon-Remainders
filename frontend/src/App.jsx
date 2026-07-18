@@ -1032,6 +1032,7 @@ function App() {
           </div>
         </div>
       </header>
+      <main>
 
       {/* Hero Section */}
       <section className="relative min-h-[70vh] lg:min-h-[80vh] flex flex-col md:flex-row items-stretch border-b-4 border-on-background overflow-hidden md:grid md:grid-cols-[1.2fr_0.8fr] md:flex-none">
@@ -1112,16 +1113,16 @@ function App() {
       <section className="py-lg md:py-xl" id="gallery">
         <div className="px-md max-w-container-max mx-auto grid grid-cols-2 md:grid-cols-4 gap-md">
           <div className="col-span-2 row-span-1 md:row-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[300px] md:h-[600px] reveal-up">
-            <img className="w-full h-full object-cover" src="/images/shop.webp" />
+            <img className="w-full h-full object-cover" src="/images/shop.webp" alt="Shobana Salon interior view" />
           </div>
-          <div className="border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
-            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" />
+          <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden">
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" alt="Premium styling products" />
           </div>
-          <div className="border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
-            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" />
+          <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden">
+            <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop" alt="Men getting a haircut" />
           </div>
-          <div className="col-span-2 border-4 border-on-background brutalist-shadow overflow-hidden h-[180px] md:h-[288px] reveal-up">
-            <img className="w-full h-full object-cover" src="/images/shop1.webp" />
+          <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden lg:col-span-2">
+            <img className="w-full h-full object-cover" src="/images/shop1.webp" alt="Barber station and mirror" />
           </div>
         </div>
       </section>
@@ -1213,6 +1214,7 @@ function App() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-background text-on-background py-lg border-t-4 border-on-background mb-20 lg:mb-0">
