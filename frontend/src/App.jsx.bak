@@ -561,7 +561,7 @@ function App() {
           </div>
           <div className="hero-img-wrap">
             <div className="brut-card hero-img-card">
-              <img src="https://images.pexels.com/photos/20785318/pexels-photo-20785318.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Barber" />
+              <img src="https://images.pexels.com/photos/20785318/pexels-photo-20785318.webp?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="Barber" />
             </div>
             <div className="hero-hours-tag">OPEN 8AM – 10PM</div>
           </div>
