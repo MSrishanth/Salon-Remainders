@@ -22,7 +22,7 @@ export const handleAppointmentSuccess = async (req, res) => {
     // Parse date for Prisma (Input: 2026-05-16 8:30 AM)
     let jsDate = new Date();
     try {
-      jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
+      jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Prisma Date Parsing Error:', e);
     }
@@ -138,7 +138,7 @@ export const handleReminderScheduled = async (req, res) => {
     const fullRemindString = `${remindDate} ${remindTime}`;
     let jsDate = new Date();
     try {
-      jsDate = DateTime.fromFormat(fullRemindString, 'yyyy-MM-dd h:mm a').toJSDate();
+      jsDate = DateTime.fromFormat(fullRemindString, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Reminder Date Parsing Error:', e);
     }
@@ -239,8 +239,8 @@ export const handleAppointmentRescheduled = async (req, res) => {
     let jsDate = new Date();
     let oldJsDate = null;
     try {
-      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
-      if (oldAppointmentDate) oldJsDate = DateTime.fromFormat(oldAppointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
+      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
+      if (oldAppointmentDate) oldJsDate = DateTime.fromFormat(oldAppointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Reschedule Date Parsing Error:', e);
     }
@@ -339,7 +339,7 @@ export const handleAppointmentCancelled = async (req, res) => {
   try {
     let jsDate = new Date();
     try {
-      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
+      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Cancellation Date Parsing Error:', e);
     }
@@ -431,7 +431,7 @@ export const handleAppointmentNoShow = async (req, res) => {
   try {
     let jsDate = new Date();
     try {
-      jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
+      jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('No-Show Date Parsing Error:', e);
     }
@@ -517,7 +517,7 @@ export const handleReminderCancelled = async (req, res) => {
     const fullRemindString = `${remindDate} ${remindTime}`;
     let jsDate = new Date();
     try {
-      jsDate = DateTime.fromFormat(fullRemindString, 'yyyy-MM-dd h:mm a').toJSDate();
+      jsDate = DateTime.fromFormat(fullRemindString, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Cancellation Date Parsing Error:', e);
     }
@@ -620,7 +620,7 @@ export const handleAppointmentCompleted = async (req, res) => {
   try {
     let jsDate = new Date();
     try {
-      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a').toJSDate();
+      if (appointmentDate) jsDate = DateTime.fromFormat(appointmentDate, 'yyyy-MM-dd h:mm a', { zone: 'Asia/Kolkata' }).toJSDate();
     } catch (e) {
       console.error('Completion Date Parsing Error:', e);
     }

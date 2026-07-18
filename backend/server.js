@@ -39,6 +39,11 @@ app.use('/api/notifications', notificationRoutes);
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
 
+// Ping endpoint for keep-alive
+app.get('/api/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 // Get all customers
 app.get('/api/customers', async (req, res) => {
   try {
@@ -138,7 +143,7 @@ app.post('/api/bookings', strictLimiter, async (req, res) => {
     // Asynchronously send confirmation email if customer has email
     if (booking.customer && booking.customer.email) {
       const subject = `Booking Confirmation & Receipt - Shobana Hair Salon`;
-      const formattedDate = DateTime.fromJSDate(date).toFormat('dd/MM/yy h:mm a');
+      const formattedDate = DateTime.fromJSDate(date).setZone('Asia/Kolkata').toFormat('dd/MM/yy h:mm a');
       const htmlBody = `
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
           <div style="background-color: #000; color: #fff; padding: 30px; text-align: center;">
@@ -197,8 +202,8 @@ cron.schedule('* * * * *', async () => {
     });
 
     for (const booking of bookings1Day) {
-      const formattedDate = DateTime.fromJSDate(booking.appointmentDate).toFormat('dd/MM/yy');
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).toFormat('h:mm a');
+      const formattedDate = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('dd/MM/yy');
+      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
       const message = `Hello ${booking.customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${booking.service} is tomorrow, ${formattedDate} at ${formattedTime}. We look forward to seeing you!`;
 
       // WhatsApp Reminder
@@ -232,7 +237,7 @@ cron.schedule('* * * * *', async () => {
     });
 
     for (const booking of bookings1Hour) {
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).toFormat('h:mm a');
+      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
       const message = `Hello ${booking.customer.name}, this is a service reminder from Shobana Hair Salon. Your appointment for ${booking.service} is in 1 hour at ${formattedTime}. See you soon!`;
 
       // WhatsApp Reminder
@@ -266,7 +271,7 @@ cron.schedule('* * * * *', async () => {
     });
 
     for (const booking of bookings15Min) {
-      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).toFormat('h:mm a');
+      const formattedTime = DateTime.fromJSDate(booking.appointmentDate).setZone('Asia/Kolkata').toFormat('h:mm a');
       const message = `Hello ${booking.customer.name}, your appointment at Shobana Hair Salon is in 15 minutes! We are getting ready for you.`;
 
       // WhatsApp Reminder
