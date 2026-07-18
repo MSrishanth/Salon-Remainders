@@ -179,20 +179,20 @@ app.get('/api/cron', async (req, res) => {
       
       const customer = customersMap[item.customerId] || { name: item.customerName, email: item.customerEmail, phone: item.customerPhone };
       
-      // 1 Day Reminder (between 12 and 24 hours)
-      if (diffMinutes > 720 && diffMinutes <= 1440 && !item.reminded1Day) {
+      // 1 Day Reminder (between 23h 50m and 24 hours)
+      if (diffMinutes > 1430 && diffMinutes <= 1440 && !item.reminded1Day) {
         await sendCronEmail(item, customer, '1 Day', dateStr, timeStr);
         await db.collection(item.type).doc(item.id).update({ reminded1Day: true });
       }
       
-      // 1 Hour Reminder (between 15 and 60 minutes) - Gap Fixed
-      if (diffMinutes > 15 && diffMinutes <= 60 && !item.reminded1Hour) {
+      // 1 Hour Reminder (between 50 and 60 minutes)
+      if (diffMinutes > 50 && diffMinutes <= 60 && !item.reminded1Hour) {
         await sendCronEmail(item, customer, '1 Hour', dateStr, timeStr);
         await db.collection(item.type).doc(item.id).update({ reminded1Hour: true });
       }
       
-      // 15 Min Reminder (between 0 and 15 minutes)
-      if (diffMinutes > 0 && diffMinutes <= 15 && !item.reminded15Min) {
+      // 15 Min Reminder (between 9 and 15 minutes)
+      if (diffMinutes > 9 && diffMinutes <= 15 && !item.reminded15Min) {
         await sendCronEmail(item, customer, '15 Minutes', dateStr, timeStr);
         await db.collection(item.type).doc(item.id).update({ reminded15Min: true });
       }
