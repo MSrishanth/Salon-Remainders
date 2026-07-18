@@ -1121,7 +1121,7 @@ function App() {
           <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden">
             <img className="w-full h-full object-cover" src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" alt="Men getting a haircut" />
           </div>
-          <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden lg:col-span-2">
+          <div className="border-4 border-on-background aspect-[4/3] bg-surface-variant overflow-hidden col-span-2">
             <img className="w-full h-full object-cover" src="/images/shop1.webp" alt="Barber station and mirror" />
           </div>
         </div>
@@ -1243,13 +1243,7 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="border-t-4 border-on-background pt-md flex flex-col md:flex-row justify-between items-center gap-sm">
-            <p className="font-label-bold text-[10px] md:text-label-bold uppercase opacity-60">© 2026 SHOBANA HAIR SALON · BUILT WITH ✂</p>
-            <div className="flex gap-md font-label-bold text-[10px] md:text-label-bold opacity-60">
-              <a className="hover:opacity-100 transition-opacity hover:text-primary-container" href="#">INSTAGRAM</a>
-              <a className="hover:opacity-100 transition-opacity hover:text-primary-container" href="#">FACEBOOK</a>
-            </div>
-          </div>
+
         </div>
       </footer>
 
