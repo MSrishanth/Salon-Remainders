@@ -983,7 +983,7 @@ function App() {
     <div className="bg-background text-on-background font-body-md antialiased overflow-x-hidden">
       {/* Top Navigation Bar */}
       <header className="w-full sticky top-0 z-50 bg-background border-b-4 border-on-background brutalist-shadow relative">
-        <div className="flex justify-between items-center px-md w-full max-w-container-max mx-auto h-auto py-md">
+        <div className="flex justify-between items-center px-md lg:px-xl w-full h-auto py-md">
           {/* Brand Logo (Left) */}
           <div className="font-headline-lg tracking-widest text-on-background uppercase shrink-0 leading-none text-[40px] md:text-[64px]">
             SHOBANA
@@ -1035,24 +1035,24 @@ function App() {
       <main>
 
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] lg:min-h-[80vh] flex flex-col md:flex-row items-stretch border-b-4 border-on-background overflow-hidden md:grid md:grid-cols-[1.2fr_0.8fr] md:flex-none">
-        <div className="flex-1 p-md md:p-xl flex flex-col justify-center space-y-md z-10 bg-background md:h-full">
-          <h1 className="font-display-lg-mobile md:font-display-lg text-[80px] md:text-[120px] leading-[0.9] md:leading-none uppercase max-w-4xl text-on-background">SHOBANA&nbsp;<div className="flex"><span className="px-xs">MEN'S&nbsp;</span><span className="bg-primary-container text-on-primary-container px-xs">SALON</span></div></h1>
-          <p className="font-body-md md:font-body-lg text-body-md md:text-body-lg max-w-xl border-l-4 border-primary-container pl-md text-on-surface-variant">Look sharp, stay sharp — we’ll remind you when it’s time.</p>
-          <div className="flex flex-col sm:flex-row gap-md pt-base transition-all duration-700 md:flex-wrap">
-            <button className="bg-primary-container text-on-primary-container border-4 border-on-background px-md md:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" onClick={() => { setLoginRole('customer'); setView('login'); }} style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
+      <section className="relative min-h-[70vh] lg:min-h-[80vh] flex flex-col lg:flex-row items-stretch border-b-4 border-on-background overflow-hidden lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:flex-none">
+        <div className="flex-1 p-md lg:p-xl flex flex-col justify-center space-y-md z-10 bg-background lg:h-full">
+          <h1 className="font-display-lg-mobile md:font-display-lg text-[80px] md:text-[110px] lg:text-[120px] leading-[0.9] md:leading-[0.95] lg:leading-none uppercase max-w-4xl text-on-background">SHOBANA&nbsp;<div className="flex"><span className="px-xs">MEN'S&nbsp;</span><span className="bg-primary-container text-on-primary-container px-xs">SALON</span></div></h1>
+          <p className="font-body-md lg:font-body-lg text-body-md lg:text-body-lg max-w-xl border-l-4 border-primary-container pl-md text-on-surface-variant">Look sharp, stay sharp — we’ll remind you when it’s time.</p>
+          <div className="flex flex-col sm:flex-row gap-md pt-base transition-all duration-700 lg:flex-wrap">
+            <button className="bg-primary-container text-on-primary-container border-4 border-on-background px-md lg:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" onClick={() => { setLoginRole('customer'); setView('login'); }} style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
               BOOK NOW
             </button>
-            <a className="bg-background text-on-background border-4 border-on-background px-md md:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" href="tel:+918686383723" style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
+            <a className="bg-background text-on-background border-4 border-on-background px-md lg:px-lg py-md font-headline-md text-headline-md brutalist-shadow brutalist-shadow-hover brutalist-shadow-active inline-flex items-center justify-center gap-sm uppercase" href="tel:+918686383723" style={{ transform: 'translate(0px, 0px)', boxShadow: 'rgb(0, 0, 0) 4px 4px 0px 0px' }}>
               CALL NOW
               <span className="material-symbols-outlined">call</span>
             </a>
           </div>
         </div>
-        <div className="flex-1 w-full relative bg-surface-container border-t-4 md:border-t-0 md:border-l-4 border-on-background overflow-hidden md:aspect-auto md:h-full md:w-full h-[300px] md:relative min-h-[400px]">
+        <div className="w-full relative bg-surface-container border-t-4 lg:border-t-0 lg:border-l-4 border-on-background overflow-hidden h-[300px] md:h-[400px] lg:h-full lg:w-full lg:flex-1">
           <img className="w-full h-full object-cover" src="/images/chair.webp" alt="Barber Chair" />
           <div className="absolute bottom-md left-md bg-primary-container text-on-primary-container p-sm brutalist-shadow border-4 border-on-background reveal-up">
-            <p className="font-headline-md text-[18px] md:text-headline-md uppercase">SINCE 1998</p>
+            <p className="font-headline-md text-[18px] lg:text-headline-md uppercase">SINCE 1998</p>
           </div>
         </div>
       </section>
