@@ -1,1 +1,1 @@
-export const API_URL = 'https://shobanamensalon.onrender.com';
+export const API_URL = 'http://localhost:3001';

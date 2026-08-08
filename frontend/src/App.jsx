@@ -1248,23 +1248,15 @@ function App() {
       </footer>
 
       {/* Bottom Mobile Nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t-4 border-on-background flex items-center justify-around h-20 px-md brutalist-shadow gap-xs">
-        <button onClick={() => window.scrollTo(0, 0)} className="flex flex-col items-center justify-center gap-1 bg-primary-container text-black px-md py-xs rounded-full transition-all brutalist-shadow-sm">
-          <span className="material-symbols-outlined">home</span>
-          <span className="font-label-bold text-[10px] uppercase">HOME</span>
-        </button>
-        <button onClick={() => { setLoginRole('customer'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t-4 border-on-background flex items-center justify-around h-20 px-md brutalist-shadow gap-md">
+        <button onClick={() => { setLoginRole('customer'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 bg-primary-container text-black px-md py-sm rounded-full transition-all brutalist-shadow-sm flex-1 border-2 border-on-background">
           <span className="material-symbols-outlined">content_cut</span>
-          <span className="font-label-bold text-[10px] uppercase">BOOK</span>
+          <span className="font-label-bold text-[12px] uppercase">Book Now</span>
         </button>
-        <button onClick={() => { setLoginRole('customer'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
-          <span className="material-symbols-outlined">history</span>
-          <span className="font-label-bold text-[10px] uppercase">VISITS</span>
-        </button>
-        <button onClick={() => { setLoginRole('barber'); setView('login'); }} className="flex flex-col items-center justify-center gap-1 text-on-background hover:bg-primary-container hover:text-black px-md py-xs rounded-full transition-all">
-          <span className="material-symbols-outlined">person</span>
-          <span className="font-label-bold text-[10px] uppercase">PROFILE</span>
-        </button>
+        <a href="tel:8686383723" className="flex flex-col items-center justify-center gap-1 bg-background text-on-background px-md py-sm rounded-full transition-all brutalist-shadow-sm flex-1 border-2 border-on-background hover:bg-primary-container hover:text-black">
+          <span className="material-symbols-outlined">call</span>
+          <span className="font-label-bold text-[12px] uppercase">Call Us</span>
+        </a>
       </nav>
     </div>
   );

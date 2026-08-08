@@ -92,8 +92,31 @@ export const handleAppointmentSuccess = async (req, res) => {
 
     const textBody = `Hi ${customerName}, your appointment for ${serviceName} on ${formattedDateDisplay} is confirmed. Total Amount to Pay: ₹${price || '---'}. See you soon!`;
 
-    // Dispatch email
+    // Dispatch email to customer
     await sendTransactionalEmail(customerEmail, subject, textBody, htmlBody);
+
+    // Send email to owner
+    const ownerEmail = 'kkonduri1996@gmail.com';
+    const ownerSubject = `New Booking Alert: ${serviceName} for ${customerName}`;
+    const ownerText = `A new booking has been made!\n\nCustomer: ${customerName}\nPhone: ${customerPhone || 'N/A'}\nService: ${serviceName}\nDate: ${formattedDateDisplay}\nAmount: ₹${price || '---'}`;
+    const ownerHtml = `<div style="font-family: sans-serif;"><h2>New Booking Alert</h2><p><strong>Customer:</strong> ${customerName}</p><p><strong>Phone:</strong> ${customerPhone || 'N/A'}</p><p><strong>Service:</strong> ${serviceName}</p><p><strong>Date & Time:</strong> ${formattedDateDisplay}</p><p><strong>Amount:</strong> ₹${price || '---'}</p></div>`;
+    await sendTransactionalEmail(ownerEmail, ownerSubject, ownerText, ownerHtml);
+
+    // Send WhatsApp to owner using CallMeBot (100% Free)
+    try {
+      if (process.env.CALLMEBOT_API_KEY) {
+        const message = encodeURIComponent(`*New Booking!*\nCustomer: ${customerName}\nService: ${serviceName}\nDate: ${formattedDateDisplay}\nPhone: ${customerPhone || 'N/A'}`);
+        // Ensure you have +91 in front of your number in CALLMEBOT_PHONE_NUMBER
+        const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${process.env.CALLMEBOT_PHONE_NUMBER}&text=${message}&apikey=${process.env.CALLMEBOT_API_KEY}`;
+        
+        await fetch(whatsappUrl);
+        console.log('Owner WhatsApp notification sent via CallMeBot.');
+      } else {
+        console.warn('CallMeBot credentials not found in .env, skipping WhatsApp to owner.');
+      }
+    } catch (waError) {
+      console.error('Failed to send WhatsApp to owner:', waError);
+    }
 
   } catch (error) {
     console.error('[CONTROLLER ERROR] handleAppointmentSuccess:', error);
