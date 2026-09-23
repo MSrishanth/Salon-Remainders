@@ -32,14 +32,25 @@ const strictLimiter = rateLimit({
 });
 
 // Middleware
+import cookieParser from 'cookie-parser';
+import authRoutes from './routes/authRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import leadRoutes from './routes/leadRoutes.js';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*'
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(globalLimiter);
 
 // Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/leads', leadRoutes);
 app.use('/api/notifications', notificationRoutes);
+
 
 // Twilio Setup
 const twilioClient = process.env.TWILIO_ACCOUNT_SID ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN) : null;

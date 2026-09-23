@@ -3,6 +3,7 @@ import { db } from './firebase';
 import { motion } from 'framer-motion';
 import IntroSequence from './components/IntroSequence';
 import { API_URL } from './config';
+import EnquiryForm from './components/EnquiryForm';
 
 const SERVICES = [
   { name: 'Regular Cut', price: 149 },
@@ -36,6 +37,7 @@ function App() {
   const [customers, setCustomers] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [nid, setNid] = useState(1000);
 
   // Portal State
@@ -63,7 +65,7 @@ function App() {
   const [emergencyEndTime, setEmergencyEndTime] = useState('17:00');
   const [showPassword, setShowPassword] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [modals, setModals] = useState({ booking: false, rem: false, custBook: false, addCust: false, reschedule: false, confirmCancelBooking: false, confirmCancelReminder: false, confirmMarkDone: false, confirmAddLeave: false, confirmEmergencyClose: false, bookingDetails: false });
+  const [modals, setModals] = useState({ booking: false, rem: false, custBook: false, addCust: false, reschedule: false, confirmCancelBooking: false, confirmCancelReminder: false, confirmMarkDone: false, confirmAddLeave: false, confirmEmergencyClose: false, bookingDetails: false, whatsappBook: false });
 
   // Scroll Animations for Landing Page
   useEffect(() => {
@@ -213,7 +215,11 @@ function App() {
       }));
     }, err => console.error("Leaves Sync Error:", err));
 
-    return () => { unsubB(); unsubC(); unsubR(); unsubA(); unsubL(); };
+    const unsubLeads = db.collection("leads").orderBy('createdAt', 'desc').onSnapshot(snap => {
+      setLeads(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, err => console.error("Leads Sync Error:", err));
+
+    return () => { unsubB(); unsubC(); unsubR(); unsubA(); unsubL(); unsubLeads(); };
   }, []);
 
   // --- AUTO DELIVER CRON ---
@@ -246,17 +252,27 @@ function App() {
     return () => clearInterval(interval);
   }, [reminders]);
 
-   const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const { user, pass, name } = loginForm;
     const cleanUser = user.trim().toLowerCase();
     const checkName = name.trim();
+
     if (loginRole === 'barber') {
-      if (cleanUser === barberAuth.username.toLowerCase() && pass === barberAuth.password) {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: user, password: pass, role: loginRole })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        
         setView('barber');
         setBTab('dashboard');
-      } else {
-        setLoginForm({ ...loginForm, error: 'Invalid credentials' });
+      } catch (err) {
+        setLoginForm({ ...loginForm, error: err.message });
       }
     } else {
       let c = customers.find(x => x.phone === cleanUser || (x.email && x.email.toLowerCase() === cleanUser));
@@ -320,6 +336,8 @@ function App() {
       setLoggedInCustomer(c);
       setView('customer');
       setCTab('home');
+      setMobileMenuOpen(false);
+      setLoginForm({ user: '', pass: '', name: '', error: '' });
       setCustBookForm(prev => ({ ...prev, name: c.name, email: c.email || '', svc: pendingBookingSvc || prev.svc }));
 
       if (pendingBookingSvc) {
@@ -748,62 +766,32 @@ function App() {
     }
     const [svcName, svcPrice] = bookingForm.svc.split('|');
 
-    const checkName = bookingForm.name.trim().toLowerCase();
-    const checkPhone = bookingForm.phone.trim();
-    const checkEmail = bookingForm.email.trim().toLowerCase();
-    
-    let c = customers.find(x => (checkPhone && x.phone === checkPhone) || (checkEmail && x.email && x.email.toLowerCase() === checkEmail));
-    
-    if (c) {
-      if (checkName && c.name.toLowerCase() !== checkName) {
-        showToast('⚠️ A different name is registered with this phone/email. Please login to book.');
-        return;
-      }
-    } else {
-      const isNameDup = customers.some(x => x.name.toLowerCase() === checkName);
-      if (isNameDup) {
-        showToast('⚠️ This name is already registered with a different phone/email.');
-        return;
-      }
-    }
-
-    let customerId;
-
-    setModals(m => ({ ...m, booking: false }));
-    setBookingForm({ name: '', phone: '', email: '', svc: '', date: '', time: '' });
-    showToast('✅ Booked for ' + bookingForm.name);
-
-    if (c) {
-      customerId = c.id;
-      db.collection("customers").doc(customerId).update({
-        visits: c.visits + 1,
-        spent: c.spent + +svcPrice,
-        lastVisit: bookingForm.date,
-        email: checkEmail || c.email
+    try {
+      const res = await fetch(`${API_URL}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: bookingForm.name.trim(),
+          phone: bookingForm.phone.trim(),
+          email: bookingForm.email.trim(),
+          service: bookingForm.svc,
+          date: bookingForm.date,
+          time: bookingForm.time,
+          enquiryType: 'SALON_APPOINTMENT',
+          websiteId: 'admin_dashboard',
+          clientId: 'shobana_internal'
+        })
       });
-    } else {
-      const newCustRef = db.collection("customers").doc();
-      customerId = newCustRef.id;
-      db.collection("customers").doc(customerId).set({
-        name: bookingForm.name.trim(), phone: checkPhone, email: checkEmail,
-        visits: 1, spent: +svcPrice, lastVisit: bookingForm.date
-      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create booking lead');
+
+      setModals(m => ({ ...m, booking: false }));
+      setBookingForm({ name: '', phone: '', email: '', svc: '', date: '', time: '' });
+      showToast('✅ Booked successfully! Lead Code: ' + data.leadCode);
+    } catch (err) {
+      showToast('❌ Error: ' + err.message);
     }
-
-    const newBookingRef = db.collection("bookings").doc();
-    db.collection("bookings").doc(newBookingRef.id).set({
-      customerId: customerId,
-      service: svcName, price: +svcPrice, date: bookingForm.date, time: bookingForm.time, status: 'PENDING'
-    });
-
-    fetch(`${API_URL}/api/notifications/appointment-success`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerEmail: bookingForm.email, customerName: bookingForm.name, serviceName: svcName,
-        appointmentDate: `${bookingForm.date} ${fmtTime(bookingForm.time)}`, price: svcPrice, customerPhone: bookingForm.phone, appUrl: window.location.origin
-      })
-    }).catch(err => console.error('Email Error:', err));
   };
 
   const submitAddCust = async (e) => {
@@ -1258,6 +1246,19 @@ function App() {
           <span className="font-label-bold text-[12px] uppercase">Call Us</span>
         </a>
       </nav>
+      
+      {/* Floating WhatsApp Button */}
+      <button 
+        onClick={() => setModals(m => ({ ...m, whatsappBook: true }))}
+        style={{ position: 'fixed', bottom: '100px', right: '20px', backgroundColor: '#25D366', color: 'white', borderRadius: '50%', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', zIndex: 1000, border: 'none', cursor: 'pointer', transition: 'transform 0.2s' }}
+        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        title="Chat on WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" width="35" height="35" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        </svg>
+      </button>
     </div>
   );
 
@@ -1316,6 +1317,7 @@ function App() {
           <div className="topbar-brand">✂️ Shobana</div>
           <div className="topbar-nav">
             <button className={bTab === 'dashboard' ? 'active' : ''} onClick={() => setBTab('dashboard')}>Dashboard</button>
+            <button className={bTab === 'enquiries' ? 'active' : ''} onClick={() => setBTab('enquiries')}>Enquiries</button>
             <button className={bTab === 'analytics' ? 'active' : ''} onClick={() => setBTab('analytics')}>Analytics</button>
             <button className={bTab === 'bookings' ? 'active' : ''} onClick={() => setBTab('bookings')}>Bookings</button>
             <button className={bTab === 'customers' ? 'active' : ''} onClick={() => setBTab('customers')}>Customers</button>
@@ -1360,6 +1362,62 @@ function App() {
                           </tr>
                         ))
                       }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {bTab === 'enquiries' && (
+            <div className="tab-pane active">
+              <div className="sh">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h2 className="brut-title">Track Enquiries & Leads</h2>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ padding: '8px 12px', background: '#d1fae5', border: '1px solid #059669', borderRadius: '4px', fontWeight: 'bold' }}>
+                      Valid Billable Leads: {leads.filter(l => l.billable).length}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+                  <table className="brut-table" style={{ minWidth: '1000px' }}>
+                    <thead>
+                      <tr>
+                        <th>Lead Code</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Customer</th>
+                        <th>Service / Request</th>
+                        <th>Billable</th>
+                        <th>Reason / Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leads.length === 0 ? (
+                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>No enquiries found.</td></tr>
+                      ) : (
+                        leads.map(lead => (
+                          <tr key={lead.id} style={{ backgroundColor: lead.status === 'POSSIBLE_DUPLICATE' ? '#fef08a' : 'inherit' }}>
+                            <td><strong>{lead.leadCode}</strong></td>
+                            <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
+                            <td><span style={{ fontSize: '0.8rem', padding: '2px 6px', background: '#eee', borderRadius: '4px' }}>{lead.enquiryType}</span></td>
+                            <td>
+                              <div>{lead.name}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#666' }}>{lead.phone}</div>
+                            </td>
+                            <td>{lead.service || lead.message || 'N/A'}</td>
+                            <td>
+                              {lead.billable ? (
+                                <span style={{ color: 'green', fontWeight: 'bold' }}>YES</span>
+                              ) : (
+                                <span style={{ color: 'red', fontWeight: 'bold' }}>NO</span>
+                              )}
+                            </td>
+                            <td style={{ fontSize: '0.85rem' }}>{lead.billingReason || lead.status}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1781,32 +1839,45 @@ function App() {
 
       {modals.custBook && (
         <div className="mo open">
-          <div className="modal">
-            <div className="mh"><h2>Book Appointment</h2><button className="mc" onClick={() => setModals(m => ({ ...m, custBook: false }))}>&times;</button></div>
-            <form onSubmit={custSubmitBooking}>
-              <div className="mb">
-                <div className="fg"><label className="fl">Full Name</label><input className="fi" required placeholder="Your Name" value={custBookForm.name} onChange={e => setCustBookForm({ ...custBookForm, name: e.target.value })} /></div>
-                <div className="fg">
-                  <label className="fl">Service</label>
-                  <select className="fi" required value={custBookForm.svc} onChange={e => setCustBookForm({ ...custBookForm, svc: e.target.value })}>
-                    <option value="">Select...</option>
-                    {SERVICES.map(s => <option key={s.name} value={`${s.name}|${s.price}`}>{s.name} — ₹{s.price}</option>)}
-                  </select>
-                </div>
-                <div className="fg"><label className="fl">Email Address</label><input className="fi" type="email" required placeholder="your@email.com" value={custBookForm.email} onChange={e => setCustBookForm({ ...custBookForm, email: e.target.value })} /></div>
-                <div className="fr">
-                  <div className="fg"><label className="fl">Date</label><input type="date" className="fi" required value={custBookForm.date} onChange={e => handleDateChange(e.target.value, setCustBookForm, 'date')} /></div>
-                  <div className="fg">
-                    <label className="fl">Time</label>
-                    <select className="fi" required value={custBookForm.time} onChange={e => setCustBookForm({ ...custBookForm, time: e.target.value })}>
-                      <option value="">Select time...</option>
-                      {getFilteredTimeOptions(custBookForm.date, leaves).map(t => <option key={t.value} value={t.value} disabled={t.isDisabled} style={t.isDisabled ? { color: '#999', backgroundColor: '#f0f0f0' } : {}}>{t.label}{t.labelSuffix}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div className="mf"><button type="button" className="btn-cancel" onClick={() => setModals(m => ({ ...m, custBook: false }))}>Cancel</button><button type="submit" className="brut-btn">Confirm</button></div>
-            </form>
+          <div className="modal" style={{ width: '90%', maxWidth: '400px' }}>
+            <div className="mh"><h2>Submit Enquiry/Booking</h2><button className="mc" onClick={() => setModals(m => ({ ...m, custBook: false }))}>&times;</button></div>
+            <div className="modal-body p-4" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+              <EnquiryForm 
+                config={{ showDate: true, showTime: true, showQuantity: false, showBudget: false }} 
+                enquiryType="SALON_APPOINTMENT" 
+                initialData={loggedInCustomer ? { name: loggedInCustomer.name, phone: loggedInCustomer.phone, email: loggedInCustomer.email || '', service: pendingBookingSvc || '' } : {}}
+                onSuccess={() => { setModals(m => ({ ...m, custBook: false })); setPendingBookingSvc(null); }} 
+                getTimeOptions={(date) => getFilteredTimeOptions(date, leaves)}
+                serviceOptions={SERVICES.map(s => ({ label: `${s.name} — ₹${s.price}`, value: `${s.name}|${s.price}` }))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modals.whatsappBook && (
+        <div className="mo open">
+          <div className="modal" style={{ width: '90%', maxWidth: '400px' }}>
+            <div className="mh">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                Continue to WhatsApp
+              </h2>
+              <button className="mc" onClick={() => setModals(m => ({ ...m, whatsappBook: false }))}>&times;</button>
+            </div>
+            <div className="modal-body p-4" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+              <p style={{ marginBottom: '15px', color: '#666', fontSize: '0.9rem' }}>Please provide your details before we redirect you to WhatsApp.</p>
+              <EnquiryForm 
+                config={{ showDate: false, showTime: false, showQuantity: false, showBudget: false }} 
+                enquiryType="WHATSAPP_INTENT" 
+                initialData={loggedInCustomer ? { name: loggedInCustomer.name, phone: loggedInCustomer.phone, email: loggedInCustomer.email || '' } : {}}
+                onSuccess={() => {
+                  setModals(m => ({ ...m, whatsappBook: false }));
+                  const text = encodeURIComponent("Hi, I would like to book an appointment!");
+                  window.open(`https://wa.me/919876543210?text=${text}`, '_blank');
+                }} 
+              />
+            </div>
           </div>
         </div>
       )}
