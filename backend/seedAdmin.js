@@ -21,6 +21,22 @@ async function seedAdmin() {
     } else {
       console.log('Admin user already exists');
     }
+    const shobanaPasswordHash = await bcrypt.hash('shobana123', 10);
+    const clientUser = {
+      username: 'shobana',
+      passwordHash: shobanaPasswordHash,
+      role: 'CLIENT',
+      clientId: 'shobana_internal',
+      createdAt: new Date().toISOString()
+    };
+
+    const clientSnapshot = await usersRef.where('username', '==', 'shobana').get();
+    if (clientSnapshot.empty) {
+      await usersRef.add(clientUser);
+      console.log('Client user seeded successfully');
+    } else {
+      console.log('Client user already exists');
+    }
   } catch (error) {
     console.error('Error seeding admin user:', error);
   }

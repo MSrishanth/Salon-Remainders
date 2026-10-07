@@ -202,11 +202,54 @@ export const createLead = async (req, res) => {
 
 export const getLeads = async (req, res) => {
   try {
-    const leadsSnap = await db.collection('leads').orderBy('createdAt', 'desc').get();
-    const leads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let query = db.collection('leads');
+    
+    if (req.user && req.user.role === 'CLIENT' && req.user.clientId) {
+      query = query.where('clientId', '==', req.user.clientId);
+    }
+    
+    const leadsSnap = await query.get();
+    let leads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Sort in JS to avoid requiring composite indexes
+    leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
     res.json(leads);
   } catch (error) {
     console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Failed to fetch leads' });
+  }
+};
+
+export const disputeLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const leadRef = db.collection('leads').doc(id);
+    const leadDoc = await leadRef.get();
+    
+    if (!leadDoc.exists) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+    
+    const lead = leadDoc.data();
+    
+    // Check permission
+    if (req.user && req.user.role === 'CLIENT') {
+      if (lead.clientId !== req.user.clientId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+    
+    await leadRef.update({
+      status: 'DISPUTED',
+      disputeReason: reason || 'Disputed by client',
+      disputedAt: new Date().toISOString()
+    });
+    
+    res.json({ message: 'Lead disputed successfully' });
+  } catch (error) {
+    console.error('Error disputing lead:', error);
+    res.status(500).json({ error: 'Failed to dispute lead' });
   }
 };

@@ -263,7 +263,7 @@ function App() {
         const res = await fetch(`${API_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: user, password: pass, role: loginRole })
+          body: JSON.stringify({ identifier: user, password: pass, role: 'ADMIN' })
         });
         const data = await res.json();
         
@@ -1391,6 +1391,7 @@ function App() {
                         <th>Service / Request</th>
                         <th>Billable</th>
                         <th>Reason / Status</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1414,7 +1415,12 @@ function App() {
                                 <span style={{ color: 'red', fontWeight: 'bold' }}>NO</span>
                               )}
                             </td>
-                            <td style={{ fontSize: '0.85rem' }}>{lead.billingReason || lead.status}</td>
+                            <td style={{ fontSize: '0.85rem' }}>{lead.status === 'DISPUTED' ? <span style={{ color: 'red' }}>DISPUTED: {lead.disputeReason}</span> : (lead.billingReason || lead.status)}</td>
+                            <td>
+                              {lead.billable && lead.status !== 'DISPUTED' && (
+                                <button onClick={() => handleDispute(lead.id)} style={{ padding: '4px 8px', fontSize: '0.8rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Dispute</button>
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -1427,9 +1433,12 @@ function App() {
 
           {bTab === 'analytics' && (
             <div className="bv">
-              <div className="ph"><h1>Analytics</h1><p>Financial Overview</p></div>
+              <div className="ph"><h1>Analytics</h1><p>Financial Overview & Lead Metrics</p></div>
               <div className="sg" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                 <div className="sb"><div className="si gold">₹</div><div className="sv">{monthRev ? '₹' + monthRev : '--'}</div><div className="sl">Month Turnover</div></div>
+                <div className="sb"><div className="si gold">🎯</div><div className="sv">{leads.length}</div><div className="sl">Total Leads</div></div>
+                <div className="sb"><div className="si gold">✅</div><div className="sv">{leads.filter(l => l.billable).length}</div><div className="sl">Billable Leads</div></div>
+                <div className="sb"><div className="si gold">💳</div><div className="sv">₹{leads.filter(l => l.billable).length * 100}</div><div className="sl">Estimated Billing Cost (@₹100/lead)</div></div>
               </div>
             </div>
           )}
@@ -1779,6 +1788,22 @@ function App() {
         </div>
       </div>
     );
+  };
+
+  const handleDispute = async (leadId) => {
+    const reason = window.prompt("Reason for dispute:");
+    if (!reason) return;
+    try {
+      const res = await fetch(`${API_URL}/api/leads/${leadId}/dispute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+      });
+      if (!res.ok) throw new Error('Failed to dispute lead');
+      alert('Dispute submitted successfully');
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
   };
 
   const renderModals = () => (
