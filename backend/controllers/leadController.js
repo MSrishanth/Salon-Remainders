@@ -8,7 +8,7 @@ function generateLeadCode(clientPrefix = 'ABC') {
   return `${clientPrefix}-${dateStr}-${sequence}`;
 }
 
-const isBillableQualifiedEnquiry = (lead) => {
+export const isBillableQualifiedEnquiry = (lead) => {
   // Must have name and phone
   if (!lead.name || !lead.phone) return { billable: false, reason: 'INVALID: Missing contact details' };
   

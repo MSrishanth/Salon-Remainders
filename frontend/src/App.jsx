@@ -263,6 +263,7 @@ function App() {
         const res = await fetch(`${API_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ identifier: user, password: pass, role: 'ADMIN' })
         });
         const data = await res.json();
@@ -1797,6 +1798,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/leads/${leadId}/dispute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ reason })
       });
       if (!res.ok) throw new Error('Failed to dispute lead');
